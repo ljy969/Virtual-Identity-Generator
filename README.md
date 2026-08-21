@@ -431,3 +431,13 @@ That's it — the new country appears in the dropdown with full cascading, i18n,
 - No automated tests or CI are included in this repository yet.
 
 ---
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ljy969%2FVirtual-Identity-Generator&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&theme=dark&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+ </picture>
+</a>
