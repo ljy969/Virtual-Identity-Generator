@@ -9,7 +9,6 @@
   <img alt='Dependencies' src='https://img.shields.io/badge/dependencies-zero-brightgreen'>
   <img alt='i18n' src='https://img.shields.io/badge/i18n-%E4%B8%AD%E6%96%87%20%7C%20English-orange'>
   <img alt='Countries' src='https://img.shields.io/badge/countries-9-important'>
-  <img alt='License' src='https://img.shields.io/badge/license-no%20license%20file-lightgrey'>
 </p>
 
 A fully **offline**, **zero-dependency** web application that generates realistic-looking, synthetic virtual identities for 9 countries/regions. All data is randomly generated in the browser — **no network requests are ever made**, no build step is required, and it runs straight from the file system.
