@@ -9,7 +9,6 @@
   <img alt='依赖' src='https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-brightgreen'>
   <img alt='国际化' src='https://img.shields.io/badge/%E5%9B%BD%E9%99%85%E5%8C%96-%E4%B8%AD%E6%96%87%20%7C%20English-orange'>
   <img alt='国家数' src='https://img.shields.io/badge/%E5%9B%BD%E5%AE%B6-9-important'>
-  <img alt='许可证' src='https://img.shields.io/badge/license-%E6%9C%AA%E6%8F%90%E4%BE%9B%20LICENSE%20%E6%96%87%E4%BB%B6-lightgrey'>
 </p>
 
 一个完全**离线**、**零依赖**的网页应用，可为 9 个国家/地区生成逼真但不真实的「虚拟身份」。所有数据均在浏览器本地随机合成 —— **不发起任何外部网络请求**，无需构建步骤，可直接以文件形式运行。
