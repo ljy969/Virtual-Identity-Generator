@@ -41,6 +41,7 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - [API Reference](#api-reference)
 - [Privacy & Security](#privacy--security)
 - [Known Limitations](#known-limitations)
+- [Star History](#star-history)
 
 ---
 
