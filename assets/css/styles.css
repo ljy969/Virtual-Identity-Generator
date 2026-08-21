@@ -1,0 +1,143 @@
+/* styles.css — 本地生成器样式（无外部依赖，系统字体）
+ * 设计令牌(D Design Tokens)以 CSS 变量集中管理，浅色为默认，
+ * 深色通过 @media (prefers-color-scheme) 与 [data-theme="dark"] 两套规则提供，
+ * 视觉连续性由统一的中性 slate 色阶 + 主蓝/翠绿强调色保证。 */
+* { box-sizing: border-box; }
+
+:root {
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --text: #1f2933;
+  --text-strong: #111827;
+  --label: #374151;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --divider: #f1f3f5;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --on-primary: #ffffff;
+  --success: #047857;
+  --hover-surface: #f4f6f8;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* 自动(跟随系统)：未显式设置 data-theme 时，系统为深色则启用深色令牌 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #e5e7eb;
+  --text-strong: #f9fafb;
+  --label: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --border: #334155;
+  --border-strong: #475569;
+  --divider: #334155;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --on-primary: #ffffff;
+  --success: #34d399;
+  --hover-surface: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+}
+/* 手动深色：始终覆盖系统偏好 */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #e5e7eb;
+  --text-strong: #f9fafb;
+  --label: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --border: #334155;
+  --border-strong: #475569;
+  --divider: #334155;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --on-primary: #ffffff;
+  --success: #34d399;
+  --hover-surface: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+.app { max-width: 920px; margin: 0 auto; padding: 24px 16px 48px; }
+.app-header h1 { margin: 0 0 4px; font-size: 24px; color: var(--text-strong); }
+.subtitle { margin: 0 0 20px; color: var(--text-muted); font-size: 13px; }
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; margin-bottom: 20px;
+}
+.controls label { display: flex; flex-direction: column; font-size: 13px; color: var(--label); gap: 4px; }
+.controls select, .controls button {
+  height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--surface); font-size: 14px; color: var(--text-strong); cursor: pointer;
+}
+.controls button { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 600; }
+.controls button.secondary { background: var(--surface); color: var(--primary); border-color: var(--primary); }
+.controls button:hover { filter: brightness(0.97); }
+.controls input.age-input {
+  height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--surface); font-size: 14px; color: var(--text-strong); width: 88px;
+}
+.controls input.email-input {
+  height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--surface); font-size: 14px; color: var(--text-strong); width: 160px;
+}
+.controls input.age-num { width: 56px; }
+.hidden { display: none !important; }
+
+.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.card h3 { margin: 0 0 10px; font-size: 15px; color: var(--text-strong); }
+.card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.card th, .card td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+.card th { width: 84px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+.card td { color: var(--text-strong); word-break: break-all; }
+
+.status {
+  margin-left: auto; font-size: 13px; color: var(--success); opacity: 0;
+  transition: opacity .2s; align-self: center;
+}
+.status.show { opacity: 1; }
+
+.disclaimer { margin-top: 24px; font-size: 12px; color: var(--text-faint); }
+
+/* 分段控件：语言 / 主题 共用同一套设计令牌（圆角/边框/主蓝），保证视觉一致 */
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.header-actions { display: inline-flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lang-switch, .theme-switch {
+  display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; background: var(--surface);
+}
+.lang-switch .lang-opt, .theme-switch .theme-opt {
+  border: 0; background: transparent; height: 34px; padding: 0 14px;
+  font-size: 13px; color: var(--label); cursor: pointer; line-height: 1; font-family: inherit;
+}
+.lang-switch .lang-opt + .lang-opt, .theme-switch .theme-opt + .theme-opt { border-left: 1px solid var(--border-strong); }
+.lang-switch .lang-opt:hover, .theme-switch .theme-opt:hover { background: var(--hover-surface); }
+.lang-switch .lang-opt.active, .theme-switch .theme-opt.active { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.lang-switch .lang-opt.active:hover, .theme-switch .theme-opt.active:hover { background: var(--primary-hover); }
+
+/* 主题切换：色彩平滑过渡，营造无缝(seamless)的视觉连续性 */
+body, .app, .controls, .card, .card th, .card td, .status, .disclaimer,
+.controls select, .controls button, .controls input,
+.lang-switch, .lang-switch .lang-opt, .theme-switch, .theme-switch .theme-opt {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+::selection { background: var(--primary); color: var(--on-primary); }

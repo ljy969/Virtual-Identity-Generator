@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>各国虚拟身份生成器（本地离线版）</title>
+  <!-- 去除标题栏图标：用空 data URI 覆盖默认 favicon 请求 -->
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <!-- 在首屏绘制前应用已保存的显式主题，避免深浅色闪烁(FOUC) -->
+  <script>
+    (function () {
+      try { var t = localStorage.getItem('fakeid.theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <div class="header-top">
+        <h1 data-i18n="app.title">各国虚拟身份生成器</h1>
+        <div class="header-actions">
+        <div class="theme-switch" id="themeSwitch" role="group" aria-label="主题">
+          <button type="button" class="theme-opt" data-theme-opt="system" data-i18n="theme.system" title="System">跟随系统</button>
+          <button type="button" class="theme-opt" data-theme-opt="light" data-i18n="theme.light" title="Light">浅色</button>
+          <button type="button" class="theme-opt" data-theme-opt="dark" data-i18n="theme.dark" title="Dark">深色</button>
+        </div>
+        <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
+          <button type="button" class="lang-opt" data-lang="system" data-i18n="lang.system">系统默认</button>
+          <button type="button" class="lang-opt" data-lang="zh" data-i18n="lang.zh">中文</button>
+          <button type="button" class="lang-opt" data-lang="en" data-i18n="lang.en">English</button>
+        </div>
+      </div>
+      </div>
+      <p class="subtitle" data-i18n="app.subtitle">本地离线版 · 仅供测试/演示用途，生成的均为合成随机数据，非真实个人信息</p>
+    </header>
+
+    <section class="controls">
+      <label>
+        <span data-i18n="ctrl.country">国家</span>
+        <select id="country"></select>
+      </label>
+      <label id="regionWrap" class="hidden">
+        <span data-i18n="ctrl.region">地区/省</span>
+        <select id="region"></select>
+      </label>
+      <label id="cityWrap" class="hidden">
+        <span data-i18n="ctrl.city">城市</span>
+        <select id="city"></select>
+      </label>
+      <label id="districtWrap" class="hidden">
+        <span data-i18n="ctrl.district">区/县</span>
+        <select id="district"></select>
+      </label>
+      <label>
+        <span data-i18n="ctrl.emailSuffix">邮箱后缀</span>
+        <select id="emailSuffix">
+          <option value="__random__" data-i18n="email.any">随机（国家默认）</option>
+          <option value="gmail.com">gmail.com</option>
+          <option value="outlook.com">outlook.com</option>
+          <option value="yahoo.com">yahoo.com</option>
+          <option value="hotmail.com">hotmail.com</option>
+          <option value="icloud.com">icloud.com</option>
+          <option value="proton.me">proton.me</option>
+          <option value="qq.com">qq.com</option>
+          <option value="163.com">163.com</option>
+          <option value="__custom__" data-i18n="email.custom">自定义…</option>
+        </select>
+      </label>
+      <label id="emailCustomWrap" class="hidden">
+        <span data-i18n="ctrl.emailCustom">自定义后缀</span>
+        <input id="emailCustom" type="text" data-i18n-ph="email.custom.ph" placeholder="例如 example.com" class="email-input">
+      </label>
+      <label>
+        <span data-i18n="ctrl.gender">性别</span>
+        <select id="gender">
+          <option value="random" data-i18n="gender.random">随机</option>
+          <option value="male" data-i18n="gender.male">男</option>
+          <option value="female" data-i18n="gender.female">女</option>
+        </select>
+      </label>
+      <label>
+        <span data-i18n="ctrl.age">年龄设置</span>
+        <select id="ageMode">
+          <option value="random" data-i18n="ageMode.random">随机</option>
+          <option value="exact" data-i18n="ageMode.exact">自定义年龄</option>
+          <option value="range" data-i18n="ageMode.range">年龄区间</option>
+        </select>
+      </label>
+      <label id="ageExactWrap" class="hidden">
+        <span data-i18n="ctrl.age">年龄</span>
+        <input id="ageExact" type="number" min="0" max="120" value="30" class="age-input">
+      </label>
+      <label id="ageRangeWrap" class="hidden">
+        <span data-i18n="ctrl.ageRange">年龄区间</span>
+        <input id="ageMin" type="number" min="0" max="120" value="18" class="age-input age-num"> — <input id="ageMax" type="number" min="0" max="120" value="65" class="age-input age-num">
+      </label>
+      <label>
+        <span data-i18n="ctrl.cardType">信用卡类型</span>
+        <select id="cardType">
+          <!-- 选项由 app.js 依据 util.cardTypes 动态填充（含双语显示名） -->
+        </select>
+      </label>
+      <label>
+        <span data-i18n="ctrl.count">数量</span>
+        <select id="count">
+          <option value="1" data-i18n="count.1">1 条</option>
+          <option value="3" data-i18n="count.3">3 条</option>
+          <option value="5" data-i18n="count.5">5 条</option>
+          <option value="10" data-i18n="count.10">10 条</option>
+        </select>
+      </label>
+      <button id="generate" type="button" data-i18n="btn.generate">生成</button>
+      <button id="copy" type="button" class="secondary" data-i18n="btn.copy">复制全部</button>
+      <button id="export" type="button" class="secondary" data-i18n="btn.export">导出 CSV</button>
+      <span id="status" class="status"></span>
+    </section>
+
+    <section id="results" class="results"></section>
+
+    <p class="disclaimer" data-i18n-html="disclaimer"></p>
+  </main>
+
+  <!-- 按依赖顺序加载（经典脚本，保证 file:// 下可用） -->
+  <script defer src="assets/js/i18n.js"></script>
+  <script defer src="assets/js/util.js"></script>
+  <script defer src="assets/js/data/occupations.js"></script>
+  <script defer src="assets/js/data/maildomains.js"></script>
+  <script defer src="assets/js/data/china.js"></script>
+  <script defer src="assets/js/data/us.js"></script>
+  <script defer src="assets/js/data/japan.js"></script>
+  <script defer src="assets/js/data/uk.js"></script>
+  <script defer src="assets/js/data/germany.js"></script>
+  <script defer src="assets/js/data/france.js"></script>
+  <script defer src="assets/js/data/canada.js"></script>
+  <script defer src="assets/js/data/italy.js"></script>
+  <script defer src="assets/js/data/spain.js"></script>
+  <script defer src="assets/js/generator.js"></script>
+  <script defer src="assets/js/theme.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</body>
+</html>
