@@ -41,7 +41,6 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - [API Reference](#api-reference)
 - [Privacy & Security](#privacy--security)
 - [Known Limitations](#known-limitations)
-- [License](#license)
 
 ---
 
@@ -432,7 +431,3 @@ That's it — the new country appears in the dropdown with full cascading, i18n,
 - No automated tests or CI are included in this repository yet.
 
 ---
-
-## License
-
-**No `LICENSE` file is currently present in this repository.** Before redistributing or forking, the maintainer should add an explicit license (for example, MIT) to clarify terms of use. Until then, usage is governed by default copyright law.
