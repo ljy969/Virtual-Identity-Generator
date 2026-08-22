@@ -56,6 +56,8 @@
 - **结构合法的证件号码** —— 中国身份证采用真实的 GB 11643-1999（模 11-2）校验算法；银行卡号通过 **Luhn** 校验；SSN/NINO/My Number/Steuer-ID/NIR/Codice Fiscale/DNI 均遵循各自的格式规范（均为示意数据）。
 - **灵活的控件** —— 性别、年龄模式（随机 / 指定 / 区间）、邮箱后缀（按国家随机 / 主流邮箱 / 自定义）、卡组织，以及批量数量（1/3/5/10 条）。
 - **复制全部**（Clipboard API，并带 `execCommand` 兼容回退）与 **导出 CSV**（带 UTF-8 BOM、符合 RFC 的引号/转义），便于在测试与演示中快速复用。
+- **扩展档案** —— 学历、专业、学校（及学校所在国）、公司规模、收入等级、技能、兴趣、人格特征、宠物、喜好食物、旅行风格、外貌（发色/瞳色/肤色）、血型、体型、**安全问题与安全答案**、**在线签名**、时区与网站。
+- **国家专属安全问答与在线签名** —— 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名。非中、非英国家（日本、德国、法国、意大利、西班牙）还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。
 
 ---
 
@@ -95,13 +97,13 @@ npx serve .
 
 ## 截图展示
 
-| 功能 | 中文 | 
-| --- | --- | 
-| **界面语言** | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> |
-| **浅色模式** | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | 
-| **深色模式** | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> |
-| **国家选择** | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | 
-| **生成示例** | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | 
+| 功能 | English | 中文 | 
+| --- | --- | --- | 
+| **界面语言** | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> |
+| **浅色模式** | <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | 
+| **深色模式** | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> |
+| **国家选择** | <img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | 
+| **生成示例** | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | 
 
 ---
 
@@ -173,6 +175,12 @@ npx serve .
 | `cardType` / `cardNumber` / `expiry` / `cvv` | 信用卡相关 | Card fields（仅成年人 ≥ 18 岁） |
 
 字段在内部均以 `[key, value]`（键值对）形式存储，并在渲染时按当前界面语言本地化，因此同一份数据可在中文与英文之间切换展示。
+
+除上述核心字段外，**扩展档案**由 `util.profileFields` 追加，包括：学历、专业、学校（及学校所在国）、公司规模、收入等级、技能、兴趣、人格特征、宠物、喜好食物、旅行风格、外貌（发色/瞳色/肤色）、血型、体型、**安全问题与安全答案**、**在线签名**、时区与网站。
+
+> **国家专属安全问答与在线签名** — 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名，存储于 `PROFILE.securityQAByCountry` 和 `PROFILE.signaturesByCountry`（见 `assets/js/data/profile.js`）。例如，**日本** 身份将获得如 _"母の旧姓は何ですか？"_ → _"田中"_ 的问答，而 **美国** 身份则获得 _"What is your mother's maiden name?"_ → _"Smith"_。每组问答均提供中、英双语版本供界面显示；对于母语非中、非英的国家（日本、德国、法国、意大利、西班牙），还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。此前的通用 `securityQA` 池（8 条）仍作为兜底回退，供未来新增国家使用。
+>
+> **国家专属在线签名** — 同样，`PROFILE.signaturesByCountry` 提供每个国家 15 条文化贴合的在线签名（升级自 8 条通用签名），并为非中、非英国家（如日本、德国、法国、意大利、西班牙）保留母语版本。
 
 ---
 
@@ -365,7 +373,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
           var city = ctx.city ? (typeof ctx.city === 'string' ? ctx.city : ctx.city.name) : '';
           return u.randInt(1, 199) + ' ' + u.pick(streets) + ', ' + city;
         },
-        zipFn: function (u) { return u.pad(u.randInt(0, 99999), 5); },
+        zipFn: function (u) { return util.pad(util.randInt(0, 99999), 5); },
         companies: companies, jobs: jobs, locale: 'zh'
       };
       return util.buildWestern(cfg, opts); // 共享的西式档案构建器
@@ -404,12 +412,12 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 
 | 键 | 取值 | 作用 |
 | --- | --- | --- |
-| `gender` | `'random'` \| `'male'` \| `'female'` | 性别选择。 |
-| `cardType` | `'random'` \| 卡组织键 | 指定卡组织或随机。 |
+| `gender` | `'random'` | `'male'` | `'female'` | 性别选择。 |
+| `cardType` | `'random'` | 卡组织键 | 指定卡组织或随机。 |
 | `region` | 地区名 | 限定到某地区/省。 |
 | `city` | 城市名 | 限定到某城市。 |
 | `district` | 区县名 | 限定到某区县（如适用）。 |
-| `ageMode` | `'random'` \| `'exact'` \| `'range'` | 年龄策略。 |
+| `ageMode` | `'random'` | `'exact'` | `'range'` | 年龄策略。 |
 | `ageExact` | 数字 | 当 `ageMode === 'exact'` 时使用。 |
 | `ageMin` / `ageMax` | 数字 | 当 `ageMode === 'range'` 时使用。 |
 | `emailDomain` | 字符串 | 覆盖国家默认邮箱域名（自动去除前导 `@`）。 |

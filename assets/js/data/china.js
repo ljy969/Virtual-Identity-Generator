@@ -232,7 +232,8 @@
       ];
       if (company) fields.push(['company', company]);
       fields.push(['occupation', util.occupationForAge(util.ageFrom(bdate), { jobs: jobs })]);
-      return fields.concat(util.creditCardForAge(util.ageFrom(bdate), opts));
+      var profileCtx = { countryCode: opts.countryCode || 'china', handle: uname, age: util.ageFrom(bdate) };
+      return fields.concat(util.creditCardForAge(util.ageFrom(bdate), opts), util.profileFields(opts, profileCtx));
     }
   });
 })(window);

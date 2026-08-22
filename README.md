@@ -56,6 +56,8 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - **Valid-structure identifiers** — Chinese ID cards use the real GB 11643-1999 (mod 11-2) checksum; card numbers pass the **Luhn** algorithm; SSN/NINO/My Number/Steuer-ID/NIR/Codice Fiscale/DNI follow their respective format conventions (all demo/illustrative).
 - **Flexible controls** — gender, age mode (random / exact / range), email domain (random per country / popular webmail / custom), card network, and batch count (1/3/5/10).
 - **Copy All** (Clipboard API with an `execCommand` fallback) and **Export CSV** (UTF-8 BOM, RFC-style quoting/escaping) for quick reuse in tests and demos.
+- **Extended profiles** — education, major, school (with country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
+- **Country-specific security QA & signatures** — each of the 9 supported countries has its own pool of 15 culturally-appropriate question/answer pairs and 15 culturally-appropriate online signatures. Non-Chinese/English locales (Japan, Germany, France, Italy, Spain) also retain native-language versions as fallback.
 
 ---
 
@@ -95,14 +97,13 @@ Tested conceptually on evergreen desktop and mobile browsers.
 
 ## Screenshots
 
-
-| Feature | English |
-| --- | --- |
-| **Interface language** | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> |
-| **Light mode** |  <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> |
-| **Dark mode** | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> |
-| **Country selection** |<img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> |
-| **Generation example** | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> |
+| Feature | English | 中文 |
+| --- | --- | --- |
+| **Interface language** | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> |
+| **Light mode** | <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> |
+| **Dark mode** | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> |
+| **Country selection** | <img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> |
+| **Generation example** | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> |
 
 ---
 
@@ -174,6 +175,10 @@ There are two profile 'shapes':
 | `cardType` / `cardNumber` / `expiry` / `cvv` | Card fields | 信用卡相关 (adults ≥ 18 only) |
 
 Fields are stored internally as `[key, value]` pairs and localized at render time according to the active UI language, so the same data can be displayed in either 中文 or English.
+
+In addition to the core fields above, an **extended profile** is appended by `util.profileFields` — covering education, major, school (with the school's country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
+
+> **Country-specific security QA & online signatures** — each of the 9 supported countries has its own pool of 15 culturally-appropriate question/answer pairs and 15 culturally-appropriate online signatures in `PROFILE.securityQAByCountry` and `PROFILE.signaturesByCountry` (see `assets/js/data/profile.js`). For instance, a **Japanese** identity receives questions like _"母の旧姓は何ですか？"_ → _"田中"_, while a **US** identity receives _"What is your mother's maiden name?"_ → _"Smith"_. Every pair is translated into both Chinese and English for UI display; countries whose native language is neither Chinese nor English (Japan, Germany, France, Italy, Spain) also retain a **native-language version** (e.g., Japanese, German, French, Italian, Spanish) as a fallback. The pre-existing generic `securityQA` pool (8 pairs) is kept as a last-resort fallback for any future country without dedicated QA data.
 
 ---
 
@@ -278,7 +283,7 @@ Brand display names are localized through `i18n.card(key)`.
 ## Copy & CSV Export
 
 - **Copy All** — builds a plain-text block of all generated records (localized to the active language) and writes it via `navigator.clipboard.writeText`, falling back to a hidden `<textarea>` + `document.execCommand('copy')` on unsupported browsers.
-- **Export CSV** — emits a UTF-8 file prefixed with a BOM (`﻿`) so Excel renders Chinese correctly, with proper RFC-style quoting/escaping of fields containing commas, quotes, or newlines. Headers are the localized field labels.
+- **Export CSV** — emits a UTF-8 file prefixed with a BOM (`﻿`) so Excel correctly recognizes Chinese; RFC-style quoting/escaping for fields containing commas, quotes, or newlines. Headers use localized field labels.
 
 ---
 
@@ -286,20 +291,20 @@ Brand display names are localized through `i18n.card(key)`.
 
 ```text
 .
-├── index.html                 # App shell; loads scripts in dependency order (defer)
+├── index.html                 # Application shell; scripts loaded with defer in dependency order
 └── assets
     ├── css
-    │   └── styles.css          # Design-token theming (light/dark/system)
+    │   └── styles.css          # Design-token theme (light/dark/system)
     └── js
-        ├── i18n.js             # UI text, field labels, card/country/occupation names
-        ├── util.js             # Registry + generation helpers (no dependencies)
+        ├── i18n.js             # UI strings, field labels, card/country/occupation names
+        ├── util.js             # Registry + generation utilities (zero-dep)
         ├── generator.js        # FakeID.generate / FakeID.listCountries
         ├── theme.js            # Light/dark/system preference + observer
         ├── app.js              # UI orchestration (cascading selects, render, copy, export)
         └── data
-            ├── occupations.js  # Locale occupation pools (util.occupationPool)
-            ├── maildomains.js  # Locale email-domain pools (util.emailPool)
-            ├── china.js        # registerCountry('china', …) — bespoke make()
+            ├── occupations.js  # Per-language occupation pools (util.occupationPool)
+            ├── maildomains.js  # Per-language email domain pools (util.emailPool)
+            ├── china.js        # registerCountry('china', …) — custom make()
             ├── us.js           # registerCountry('us', …)   — buildWestern
             ├── japan.js        # registerCountry('japan', …)
             ├── uk.js           # registerCountry('uk', …)
@@ -314,24 +319,24 @@ Brand display names are localized through `i18n.card(key)`.
 
 ## Architecture
 
-The app is built around a single global namespace, **`window.FakeID`**, populated by small, order-independent modules loaded with `defer` (so execution order follows document order and `file://` works without modules/CORS).
+The app is built around a single global namespace **`window.FakeID`**, composed of several small, independent modules loaded with `defer` (execution order = document order, so `file://` works without a module system or CORS).
 
 | Module | Responsibility |
 | --- | --- |
-| `i18n.js` | Dictionaries (zh/en) for UI strings, field labels, card brands, country names, age-category occupation labels; `apply()`, `t()`, `field()`, `card()`, `gender()`, `countryLabel()`, `occLabel()`, `setLang()`, `onChange()`. |
-| `util.js` | The engine: RNG helpers, date/age logic, body metrics, occupation/company-by-age, password/handle generation, China ID checksum, email/pool resolvers, the shared `buildWestern()` profile builder, the `cardTypes` registry + Luhn logic, and the **country registry** (`registerCountry`). |
+| `i18n.js` | Bilingual dictionary: UI strings, field labels, card brand names, country names, age-category occupation labels; provides `apply()`, `t()`, `field()`, `card()`, `gender()`, `countryLabel()`, `occLabel()`, `setLang()`, `onChange()`. |
+| `util.js` | Core engine: random helpers, date/age logic, body metrics, age-aware occupation/company, password/handle generation, China ID checksum, email/pool resolvers, shared `buildWestern()` profile builder, `cardTypes` registry + Luhn logic, and **country registry** (`registerCountry`). |
 | `generator.js` | Public entry points `FakeID.generate(code, opts)` and `FakeID.listCountries()`. |
 | `theme.js` | Theme preference + observer; writes `data-theme` on `<html>`. |
-| `app.js` | Wires the DOM: cascading Country→Region→City→District selects, control synchronization, rendering, copy/export, and language/theme switching. |
-| `data/*.js` | One `registerCountry(code, cfg)` call each. `occupations.js` and `maildomains.js` expose shared, locale-keyed pools. |
+| `app.js` | Wires up DOM: country→region→city→district cascading, control bindings, render, copy/export, language/theme switching. |
+| `data/*.js` | Each file makes one `registerCountry(code, cfg)` call. `occupations.js` and `maildomains.js` provide shared, per-language pools. |
 
-**Extension model:** a country is just a data file that calls `FakeID.registerCountry('code', { label, locale, regions, make })`. The UI discovers it automatically through `FakeID.listCountries()` — no changes to `app.js` or `index.html`'s control logic are needed beyond adding the `<script>` tag.
+**Extensibility model:** a country/region is just a data file calling `FakeID.registerCountry('code', { label, locale, regions, make })`. The UI discovers it automatically via `FakeID.listCountries()` — apart from adding the `<script>` tag, no changes to `app.js` or `index.html` control logic are needed.
 
 ---
 
 ## Developer Guide: Adding a New Country
 
-1. **Create the data module** under `assets/js/data/`, e.g. `assets/js/data/example.js`:
+1. **Create a data module** under `assets/js/data/`, e.g. `assets/js/data/example.js`:
 
 ```js
 (function (global) {
@@ -339,51 +344,51 @@ The app is built around a single global namespace, **`window.FakeID`**, populate
   var FakeID = global.FakeID, util = FakeID.util;
 
   var surnames    = ['Surname1', 'Surname2'];
-  var givenMale   = ['MaleName1', 'MaleName2'];
-  var givenFemale = ['FemaleName1', 'FemaleName2'];
-  // regions → cities → (optional) districts
+  var givenMale   = ['Male1', 'Male2'];
+  var givenFemale = ['Female1', 'Female2'];
+  // Region → City → (optional) District
   var regions = [
     { name: 'Region A', abbr: 'RA', cities: ['City X', 'City Y'] },
     { name: 'Region B', cities: [{ name: 'City Z', districts: ['District 1'] }] }
   ];
   var streets   = ['Main St', 'Oak Ave'];
-  var companies = ['Acme Ltd', 'Globex Inc'];
-  var jobs      = util.occupationPool('en'); // or 'zh','de','fr','it','es','ja'
+  var companies = ['Example Corp', 'Example Group'];
+  var jobs      = util.occupationPool('zh'); // or 'en','de','fr','it','es','ja'
 
   FakeID.registerCountry('ex', {
-    label: 'Example',          // shown in the country <select> (localized in i18n.COUNTRY)
-    locale: 'en',
+    label: 'Example Country',   // shown in dropdown (localized via i18n.COUNTRY)
+    locale: 'zh',
     regions: regions,
     make: function (opts) {
       var cfg = {
         regions: regions,
         surnames: surnames, givenMale: givenMale, givenFemale: givenFemale,
-        domains: util.emailPool('en'),
-        phonePrefix: ['010'], phoneLen: 7,
+        domains: util.emailPool('zh'),
+        phonePrefix: ['138'], phoneLen: 8,
         idLabel: 'id',
         idFn: function () { return 'ID-' + util.pad(util.randInt(0, 999999), 6); },
         addressFn: function (u, ctx) {
           var city = ctx.city ? (typeof ctx.city === 'string' ? ctx.city : ctx.city.name) : '';
           return u.randInt(1, 199) + ' ' + u.pick(streets) + ', ' + city;
         },
-        zipFn: function (u) { return u.pad(u.randInt(0, 99999), 5); },
-        companies: companies, jobs: jobs, locale: 'en'
+        zipFn: function (u) { return util.pad(util.randInt(0, 99999), 5); },
+        companies: companies, jobs: jobs, locale: 'zh'
       };
-      return util.buildWestern(cfg, opts); // shared western-profile builder
+      return util.buildWestern(cfg, opts); // shared Western profile builder
     }
   });
 })(window);
 ```
 
-2. **Register the locale strings** (country name + any new occupation/job text) in `assets/js/i18n.js` — add the code to both the `zh` and `en` `COUNTRY` maps so the selector label localizes correctly.
+2. **Register UI strings** (country name + any new occupation text) in `assets/js/i18n.js` — add the code to both `zh` and `en` `COUNTRY` maps so dropdown labels localize correctly.
 
-3. **Load the script** by adding it to `index.html` in `defer` order, after `util.js` / `occupations.js` / `maildomains.js` and before `generator.js`:
+3. **Load the script**: in `index.html`, add it in the `defer` sequence after `util.js` / `occupations.js` / `maildomains.js` and before `generator.js`:
 
 ```html
 <script defer src='assets/js/data/example.js'></script>
 ```
 
-That's it — the new country appears in the dropdown with full cascading, i18n, theming, copy, and CSV export support, with no other code changes.
+Done — the new country appears in the dropdown with cascading selectors, i18n, theme, copy, and CSV export all working automatically, no other code changes required.
 
 ---
 
@@ -393,27 +398,27 @@ That's it — the new country appears in the dropdown with full cascading, i18n,
 
 | Member | Signature | Description |
 | --- | --- | --- |
-| `generate` | `generate(code, opts) → Array<[key, value]>` | Generate one profile. See `opts` below. |
+| `generate` | `generate(code, opts) → Array<[key, value]>` | Generate one identity. See `opts` below. |
 | `listCountries` | `listCountries() → Array<{code,label,hasStates,states,hasRegions,regions}>` | List registered countries. |
 | `countries` | `Object<code, cfg>` | Raw registry. |
 | `registerCountry` | `registerCountry(code, cfg)` | Register a country/region. |
-| `util` | `Object` | The engine (see below). |
-| `i18n` | `Object` | Internationalization API (see below). |
+| `util` | `Object` | Core engine (see below). |
+| `i18n` | `Object` | i18n API (see below). |
 | `theme` | `Object` | Theme API (see below). |
 
-### Generation options (`opts`)
+### Generation Options (`opts`)
 
 | Key | Values | Effect |
 | --- | --- | --- |
-| `gender` | `'random'` \| `'male'` \| `'female'` | Gender selection. |
-| `cardType` | `'random'` \| card key | Card network, or random. |
-| `region` | region name | Restrict to a region/state. |
-| `city` | city name | Restrict to a city. |
-| `district` | district name | Restrict to a district (where applicable). |
-| `ageMode` | `'random'` \| `'exact'` \| `'range'` | Age strategy. |
-| `ageExact` | number | Used when `ageMode === 'exact'`. |
-| `ageMin` / `ageMax` | number | Used when `ageMode === 'range'`. |
-| `emailDomain` | string | Override the country-default email domain (leading `@` trimmed). |
+| `gender` | `'random'` | `'male'` | `'female'` | Gender choice. |
+| `cardType` | `'random'` | card network key | Specific network or random. |
+| `region` | Region name | Restrict to a region/province. |
+| `city` | City name | Restrict to a city. |
+| `district` | District name | Restrict to a district (if applicable). |
+| `ageMode` | `'random'` | `'exact'` | `'range'` | Age strategy. |
+| `ageExact` | Number | Used when `ageMode === 'exact'`. |
+| `ageMin` / `ageMax` | Number | Used when `ageMode === 'range'`. |
+| `emailDomain` | String | Override country default email domain (leading `@` stripped). |
 
 ### `FakeID.util` (selected)
 
@@ -431,18 +436,18 @@ That's it — the new country appears in the dropdown with full cascading, i18n,
 
 ## Privacy & Security
 
-- **No network access.** The page makes zero external requests (no CDNs, no analytics, no fonts, no telemetry). Open the Network tab and you will see nothing leave the browser.
-- **No storage of generated data.** Records exist only in the DOM until you copy or export them; nothing is written to a server or shared.
-- **Synthetic only.** All values are randomly generated; identifiers follow public format conventions but are **not** valid issued numbers and must not be used to represent real individuals.
+- **No network access.** Zero external requests (no CDN, no analytics, no external fonts, no telemetry). Open the browser Network tab — nothing leaves the browser.
+- **No data retention.** Records exist only in the DOM until you copy or export; nothing is written to a server or shared.
+- **Purely synthetic.** All values are randomly generated; identifiers follow public format specs but are **not** valid issued numbers and must not be used to represent real individuals.
 
 ---
 
 ## Known Limitations
 
-- Occupation and name pools are **curated samples**, not exhaustive census data; they are illustrative, not statistically representative.
-- The Chinese (`zh`) occupation pool still contains a few non-localized placeholder entries that should be cleaned up.
-- Identifiers are **demo/illustrative** — they match public formats/checksums but are not validated or issuable.
-- No automated tests or CI are included in this repository yet.
+- Name and occupation pools are **curated samples**, not exhaustive census data; for illustration only, not statistically representative.
+- The Chinese (`zh`) occupation pool still contains a few unlocalized placeholder entries pending cleanup.
+- All identifiers are **demo/illustrative** — although they conform to public formats and checksums, they are unvalidated and non-issuable.
+- No automated tests or CI pipeline in this repository yet.
 
 ---
 

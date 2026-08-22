@@ -6,6 +6,7 @@
     opts = opts || {};
     var c = FakeID.countries[code];
     if (!c) throw new Error('未知国家/地区: ' + code);
+    opts.countryCode = code;
     return c.make(opts);
   };
   FakeID.listCountries = function () {

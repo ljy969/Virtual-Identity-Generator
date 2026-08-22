@@ -116,6 +116,10 @@
       myNumber: 'マイナンバー(示意)', taxId: 'Steuer-ID(示意)', nir: 'NIR(示意)',
       cf: 'Codice Fiscale(示意)', dni: 'DNI(示意)', sin: 'SIN(示意)',
       address: '地址', zip: '邮编', company: '公司', occupation: '职业',
+      school: '学校', major: '专业', education: '学历', schoolType: '学校类型', schoolCountry: '学校所在国家',
+      incomeLevel: '收入等级', companySize: '公司规模', skills: '技能', interests: '兴趣', personality: '人格特征', pet: '宠物', favoriteFood: '喜好食物', travelStyle: '旅行风格',
+      hairColor: '发色', eyeColor: '瞳色', skinTone: '肤色', bloodType: '血型', bodyType: '体型',
+      securityQuestion: '安全问题', securityAnswer: '安全答案', onlineSignature: '在线签名', timezone: '时区', website: '网站',
       cardType: '信用卡类型', cardNumber: '卡号', expiry: '有效期', cvv: '安全码'
     },
     en: {
@@ -126,6 +130,10 @@
       myNumber: 'My Number (demo)', taxId: 'Tax ID (demo)', nir: 'NIR (demo)',
       cf: 'Codice Fiscale (demo)', dni: 'DNI (demo)', sin: 'SIN (demo)',
       address: 'Address', zip: 'Postal Code', company: 'Company', occupation: 'Occupation',
+      school: 'School', major: 'Major', education: 'Education', schoolType: 'School Type', schoolCountry: 'School Country',
+      incomeLevel: 'Income Level', companySize: 'Company Size', skills: 'Skills', interests: 'Interests', personality: 'Personality', pet: 'Pet', favoriteFood: 'Favorite Food', travelStyle: 'Travel Style',
+      hairColor: 'Hair Color', eyeColor: 'Eye Color', skinTone: 'Skin Tone', bloodType: 'Blood Type', bodyType: 'Body Type',
+      securityQuestion: 'Security Question', securityAnswer: 'Security Answer', onlineSignature: 'Online Signature', timezone: 'Timezone', website: 'Website',
       cardType: 'Card Type', cardNumber: 'Card Number', expiry: 'Expiry', cvv: 'CVV'
     }
   };
@@ -179,6 +187,40 @@
     return 'zh'; // 默认回退到中文（主界面文案为中文）
   }
 
+  /* ---- 根据系统区域设置推断默认国家（地区子标签优先，语言退而次之）--- */
+  // 地区子标签（语言标签中 “-” 之后的部分，如 en-US 的 US）到国家代码的映射
+  var REGION_TO_COUNTRY = {
+    CN: 'china', US: 'us', GB: 'uk', CA: 'canada', DE: 'germany',
+    JP: 'japan', FR: 'france', IT: 'italy', ES: 'spain'
+  };
+  // 仅有主语言、无地区子标签时的回退（如 zh → china，en → us）
+  var LANG_TO_COUNTRY = {
+    zh: 'china', ja: 'japan', de: 'germany', fr: 'france', it: 'italy', es: 'spain', en: 'us'
+  };
+  function detectSystemCountry(codes) {
+    codes = codes || (FakeID.listCountries ? FakeID.listCountries().map(function (c) { return c.code; }) : []);
+    var langs = (navigator.languages && navigator.languages.length)
+      ? navigator.languages
+      : [navigator.language || navigator.userLanguage || ''];
+    var i, parts, region, l, code;
+    // 第一遍：优先使用语言标签中的地区子标签（如 en-US → US → us）
+    for (i = 0; i < langs.length; i++) {
+      parts = String(langs[i]).split('-');
+      if (parts.length > 1) {
+        region = parts[parts.length - 1].toUpperCase();
+        code = REGION_TO_COUNTRY[region];
+        if (code && codes.indexOf(code) >= 0) return code;
+      }
+    }
+    // 第二遍：退化为按主语言推断（如 zh → china，en → us）
+    for (i = 0; i < langs.length; i++) {
+      l = String(langs[i]).split('-')[0].toLowerCase();
+      code = LANG_TO_COUNTRY[l];
+      if (code && codes.indexOf(code) >= 0) return code;
+    }
+    return null;
+  }
+
   var pref;
   try { pref = localStorage.getItem(STORAGE_KEY); } catch (e) { pref = null; }
   if (SUPPORTED.indexOf(pref) < 0) pref = 'system';
@@ -201,6 +243,7 @@
   i18n.lang = function () { return current; };
   i18n.pref = function () { return pref; };
   i18n.detectSystemLang = detectSystemLang;
+  i18n.detectSystemCountry = detectSystemCountry;
   i18n.t = function (k) {
     var d = dict[current] || dict.zh;
     return (d && d[k] != null) ? d[k] : (dict.zh[k] != null ? dict.zh[k] : k);

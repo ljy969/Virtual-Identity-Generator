@@ -54,11 +54,53 @@
   }
 
   // 将字段值按当前 UI 语言本地化（性别代码与年龄类别职业代码）
+  // 新增：支持多语言对象 {zh: ..., en: ..., ja: ..., de: ..., fr: ..., it: ..., es: ..., nativeLang: '...'}
+  // 学校/学校国家字段：优先显示该国家的本地语言（如日语、德语、法语等），其余字段优先 UI 语言
+  // 学校字段的值为 [name, country] 数组，需取第一个元素
   function localizeValue(key, value) {
     if (key === 'gender') return i18n.gender(value);
     if (key === 'cardType') return i18n.card(value);
     if (key === 'occupation' && (value === 'child' || value === 'student' || value === 'retired')) {
       return i18n.occLabel(value);
+    }
+    // 多语言对象值
+    if (value && typeof value === 'object') {
+      var uiLang = i18n.lang(); // 'zh' 或 'en'
+      var nativeLang = value.nativeLang; // 如 'ja', 'de', 'fr', 'it', 'es'
+      
+      // 学校相关字段：优先显示该国家的本地语言
+      var isSchoolField = (key === 'school' || key === 'schoolCountry');
+      
+      var selected = null;
+      if (isSchoolField) {
+        // 1. 优先使用该国家的本地语言
+        if (nativeLang && value[nativeLang] != null) selected = value[nativeLang];
+        // 2. 回退到当前 UI 语言
+        else if (value[uiLang] != null) selected = value[uiLang];
+        // 3. 回退到 zh/en
+        else if (value.zh != null) selected = value.zh;
+        else if (value.en != null) selected = value.en;
+      } else {
+        // 其它字段：优先 UI 语言
+        if (value[uiLang] != null) selected = value[uiLang];
+        // 回退到该国家的本地语言
+        else if (nativeLang && value[nativeLang] != null) selected = value[nativeLang];
+        // 回退到 zh/en
+        else if (value.zh != null) selected = value.zh;
+        else if (value.en != null) selected = value.en;
+      }
+      // 4. 取第一个可用值
+      if (selected == null) {
+        for (var k in value) {
+          if (value.hasOwnProperty(k) && value[k] != null) { selected = value[k]; break; }
+        }
+      }
+      
+      // 如果选中的值是数组 [name, country]，取第一个元素（学校名/国家名）
+      if (Array.isArray(selected)) {
+        return selected[0];
+      }
+      return selected;
     }
     return value;
   }
@@ -132,12 +174,20 @@
   function refreshCountryOptions() {
     var sel = countrySel.value;
     countrySel.innerHTML = '';
-    FakeID.listCountries().forEach(function (c) {
+    var list = FakeID.listCountries();
+    list.forEach(function (c) {
       var o = document.createElement('option');
       o.value = c.code; o.textContent = i18n.countryLabel(c.code);
       countrySel.appendChild(o);
     });
-    if (sel) countrySel.value = sel;
+    if (sel) {
+      countrySel.value = sel;   // 语言切换等场景：保留用户已选国家
+    } else {
+      // 首次加载：默认选中“系统设置的国家”（按系统区域/语言推断），否则回退列表首个国家
+      var codes = list.map(function (c) { return c.code; });
+      var sys = i18n.detectSystemCountry(codes);
+      countrySel.value = (sys && codes.indexOf(sys) >= 0) ? sys : (list.length ? list[0].code : '');
+    }
   }
 
   // 邮箱后缀下拉：根据国家所选语言/地区的邮箱域名池动态填充，

@@ -248,7 +248,7 @@
     var username = handle.replace(/\./g, '') + num;
     var email = handle + num + '@' + util.emailDomain(opts, cfg.domains);
     var phone = util.pick(cfg.phonePrefix) + util.pad(util.randInt(0, Math.pow(10, cfg.phoneLen || 7) - 1), cfg.phoneLen || 7);
-    var ctx = { first: first, last: last, gender: gender, bdate: bdate, region: region, city: city };
+    var ctx = { first: first, last: last, gender: gender, bdate: bdate, region: region, city: city, handle: username, countryCode: opts.countryCode || cfg.code, age: util.ageFrom(bdate) };
     var metrics = util.bodyMetrics(gender, util.ageFrom(bdate));
     // 字段以“键”形式存储，渲染时按当前 UI 语言本地化（i18n.field + i18n.gender/occLabel）
     var fields = [
@@ -274,6 +274,8 @@
     if (cfg.jobs) fields.push(['occupation', util.occupationForAge(util.ageFrom(bdate), cfg)]);
     // 信用卡（类型由 opts.cardType 控制，缺省随机；未成年不生成）
     fields = fields.concat(util.creditCardForAge(util.ageFrom(bdate), opts));
+    // 扩展档案字段（学校/学历/收入/技能/外貌/安全等，对所有国家通用）
+    fields = fields.concat(util.profileFields(opts, ctx));
     return fields;
   };
 
@@ -378,6 +380,307 @@
     if (isNaN(age)) age = 0;
     if (age < 18) return [];
     return util.creditCardFields(opts);
+  };
+
+  /* 从数组中随机取 n 个不重复元素，并以 sep 连接为字符串 */
+  util.pickSome = function (arr, n, sep) {
+    arr = arr || [];
+    if (!sep) sep = ', ';
+    if (arr.length <= n) return arr.slice().join(sep);
+    var pool = arr.slice(), out = [];
+    while (out.length < n && pool.length) {
+      out.push(pool.splice(util.randInt(0, pool.length - 1), 1)[0]);
+    }
+    return out.join(sep);
+  };
+
+  /* 扩展档案字段：学校/学历/收入/技能/外貌/安全等，对所有国家通用。
+   * 生成时按当前 UI 语言（zh / en）取对应语言池；ctx 需包含 countryCode、handle(用户名) 等。
+   * 学校相关字段按国家代码从对应国家池中选取，保证学校与“学校所在国家”一一对应。 */
+  util.profileFields = function (opts, ctx) {
+    opts = opts || {};
+    ctx = ctx || {};
+    var P = (FakeID.profile && FakeID.profile.pools) || {};
+    var lang = (FakeID.i18n && FakeID.i18n.lang && FakeID.i18n.lang() === 'en') ? 'en' : 'zh';
+    var zhPool = P['zh'];
+    var enPool = P['en'];
+    if (!zhPool || !enPool) return [];
+    var pick = util.pick, sepListZh = '、', sepListEn = ', ', out = [];
+
+    // 从两个语言池中按相同索引取值，返回双语对象 {zh, en}
+    // 普通字段（非学校类）使用 zhPool/enPool 直接按索引对应
+    function pickBoth(poolKey) {
+      var zhArr = zhPool[poolKey] || [], enArr = enPool[poolKey] || [];
+      if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
+      var idx = util.randInt(0, zhArr.length - 1);
+      var zhVal = zhArr[idx], enVal = enArr[idx];
+      // securityQA 的元素是数组 [问题, 答案]，保留完整数组供调用方解包
+      // 其它池元素为字符串，直接返回
+      return { zh: zhVal, en: enVal };
+    }
+    function pickSomeBoth(arrKey, n, band) {
+      var zhArr = (zhPool[arrKey] && zhPool[arrKey][band]) || zhPool[arrKey] || [];
+      var enArr = (enPool[arrKey] && enPool[arrKey][band]) || enPool[arrKey] || [];
+      if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
+      // util.pickSome 可能会修改数组，使用副本
+      return {
+        zh: util.pickSome(zhArr.slice(), n, '、'),
+        en: util.pickSome(enArr.slice(), n, ', ')
+      };
+    }
+    function pickBothBand(arrKey, band) {
+      var zhArr = (zhPool[arrKey] && zhPool[arrKey][band]) || zhPool[arrKey] || [];
+      var enArr = (enPool[arrKey] && enPool[arrKey][band]) || enPool[arrKey] || [];
+      if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
+      var idx = util.randInt(0, zhArr.length - 1);
+      return { zh: zhArr[idx], en: enArr[idx] };
+    }
+
+    // 安全问题 / 答案（按国家细分，保证问答内容与所生身份的国家相符）
+    // 比较 zh/en 池的 pickBoth 不同，本函数从 securityQAByCountry 按国家代码选取，
+    // 并返回本国语言版本，供 localizeValue 按原生语言优先显示。
+    // 返回结构：{ zh: [q,a], en: [q,a], nativeLang: 'xx', native: [q,a] }
+    // 如国家专属池缺失，回退到通用 securityQA。
+    function pickSecurityQAByCountry(countryCode) {
+      var byCountry = (P['securityQAByCountry'] || {});
+      var pool = byCountry[countryCode];
+      if (!pool) {
+        // 回退到通用 securityQA（按相同索引从 zh/en 池中取）
+        var fb = pickBoth('securityQA');
+        return { zh: fb.zh, en: fb.en, nativeLang: 'zh', native: fb.zh };
+      }
+      var nativeLang = pool.nativeLang || 'en';
+      var nativeArr = pool[nativeLang] || pool.en || pool.zh || [];
+      if (!nativeArr.length) {
+        var fb2 = pickBoth('securityQA');
+        return { zh: fb2.zh, en: fb2.en, nativeLang: 'zh', native: fb2.zh };
+      }
+      var idx = util.randInt(0, nativeArr.length - 1);
+      return {
+        zh: (pool.zh && pool.zh[idx]) || nativeArr[idx],
+        en: (pool.en && pool.en[idx]) || nativeArr[idx],
+        nativeLang: nativeLang,
+        native: nativeArr[idx]
+      };
+    }
+
+    // 在线签名（按国家细分，保证签名内容与所生身份的国家相符）
+    // 比较 zh/en 池的 pickBoth 不同，本函数从 signaturesByCountry 按国家代码选取，
+    // 并返回本国语言版本，供 localizeValue 按原生语言优先显示。
+    // 返回结构：{ zh: sig, en: sig, nativeLang: 'xx', native: sig }
+    // 如国家专属池缺失，回退到通用 signatures。
+    function pickSignaturesByCountry(countryCode) {
+      var byCountry = (P['signaturesByCountry'] || {});
+      var pool = byCountry[countryCode];
+      if (!pool) {
+        // 回退到通用 signatures（按相同索引从 zh/en 池中取）
+        var fb = pickBoth('signatures');
+        return { zh: fb.zh, en: fb.en, nativeLang: 'zh', native: fb.zh };
+      }
+      var nativeLang = pool.nativeLang || 'en';
+      var nativeArr = pool[nativeLang] || pool.en || pool.zh || [];
+      if (!nativeArr.length) {
+        var fb2 = pickBoth('signatures');
+        return { zh: fb2.zh, en: fb2.en, nativeLang: 'zh', native: fb2.zh };
+      }
+      var idx = util.randInt(0, nativeArr.length - 1);
+      return {
+        zh: (pool.zh && pool.zh[idx]) || nativeArr[idx],
+        en: (pool.en && pool.en[idx]) || nativeArr[idx],
+        nativeLang: nativeLang,
+        native: nativeArr[idx]
+      };
+    }
+
+    // 国家代码 -> 本地语言代码映射
+    var COUNTRY_NATIVE_LANG = {
+      china: 'zh', us: 'en', japan: 'ja', uk: 'en',
+      germany: 'de', france: 'fr', italy: 'it', spain: 'es', canada: 'en'
+    };
+    
+    // 从扁平学校池中选取：数组元素为 [zhName, countryName, nativeName] 或 [enName, countryName, nativeName]
+    // 返回 { native: [schoolName, countryName], zh: [schoolName, countryName], en: [schoolName, countryName], nativeLang: 'ja' }
+    function pickSchoolByCountry(poolName) {
+      var countryCode = ctx.countryCode || 'china';
+      var nativeLang = COUNTRY_NATIVE_LANG[countryCode] || 'en';
+      
+      var zhArr = zhPool[poolName] || [];
+      var enArr = enPool[poolName] || [];
+      
+      // 选择基础数组：如果 nativeLang 是 zh 用 zhArr，是 en 用 enArr，否则用 zhArr 作为基础
+      var baseArr = (nativeLang === 'zh') ? zhArr : enArr;
+      if (!baseArr.length) baseArr = (nativeLang === 'zh') ? enArr : zhArr;
+      if (!baseArr.length) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
+      
+      var idx = util.randInt(0, baseArr.length - 1);
+      var baseEntry = baseArr[idx];
+      
+      // 提取中文名、英文名、原生名
+      var zhName = (zhArr[idx] && zhArr[idx][0]) || baseEntry[0];
+      var enName = (enArr[idx] && enArr[idx][0]) || baseEntry[0];
+      var nativeName = baseEntry[2] || baseEntry[0]; // 第三个元素是原生名
+      var countryName = baseEntry[1] || ''; // 第二个元素是国家名
+      
+      var result = {};
+      result.zh = [zhName, countryName];
+      result.en = [enName, countryName];
+      result[nativeLang] = [nativeName, countryName];
+      result.nativeLang = nativeLang;
+      return result;
+    }
+
+    // 学校类型也按国家区分（使用 schoolTypesByCountry，若不存在则回退通用池）
+    function pickSchoolTypeByCountry() {
+      var countryCode = ctx.countryCode || 'china';
+      var byCountry = P['schoolTypesByCountry'] || {};
+      var countryPool = byCountry[countryCode];
+      if (!countryPool) {
+        // 回退到通用 schoolTypes 池
+        return pickBoth('schoolTypes');
+      }
+      var zhArr = countryPool.zh || [];
+      var enArr = countryPool.en || [];
+      if (!zhArr.length || !enArr.length) return pickBoth('schoolTypes');
+      var idx = util.randInt(0, zhArr.length - 1);
+      return { zh: zhArr[idx], en: enArr[idx] };
+    }
+
+    // 学校 / 学历 / 收入：与年龄一致（学龄前→小学→初中→高中→大学；在职才有收入与公司规模）
+    var ageNum = parseInt(ctx.age, 10);
+    if (isNaN(ageNum)) ageNum = 30;
+    var band = (ageNum < 6) ? 'child' : (ageNum < 18) ? 'youth' : (ageNum < 65) ? 'adult' : 'senior';
+
+    // 学校 / 学历类（双语，学校与国家成对）
+    var edu = { zh: '', en: '' };
+    var schoolTypeVal = { zh: '', en: '' };
+    var majorVal = { zh: '', en: '' };
+    var schoolPair = { zh: ['', ''], en: ['', ''] };
+
+    if (ageNum < 6) {
+      edu = { zh: '学龄前', en: 'Preschool' };
+      schoolPair = pickSchoolByCountry('kindergartens');
+      schoolTypeVal = { zh: '幼儿园', en: 'Kindergarten' };
+      majorVal = { zh: '无', en: 'None' };
+    } else if (ageNum < 12) {
+      edu = { zh: '小学在读', en: 'Primary School' };
+      schoolPair = pickSchoolByCountry('primarySchools');
+      schoolTypeVal = { zh: '小学', en: 'Primary School' };
+      majorVal = { zh: '无', en: 'None' };
+    } else if (ageNum < 15) {
+      edu = { zh: '初中在读', en: 'Junior High School' };
+      schoolPair = pickSchoolByCountry('middleSchools');
+      schoolTypeVal = { zh: '初中', en: 'Junior High' };
+      majorVal = { zh: '无', en: 'None' };
+    } else if (ageNum < 18) {
+      edu = { zh: '高中在读', en: 'High School' };
+      schoolPair = pickSchoolByCountry('highSchools');
+      schoolTypeVal = { zh: '高中', en: 'High School' };
+      majorVal = { zh: '无', en: 'None' };
+    } else if (ageNum < 23) {
+      edu = { zh: '本科在读', en: 'Bachelor (in progress)' };
+      schoolPair = pickSchoolByCountry('schools');
+      schoolTypeVal = pickSchoolTypeByCountry();
+      majorVal = pickBoth('majors');
+    } else if (ageNum < 65) {
+      edu = { zh: pick(['本科', '硕士', '博士']), en: pick(['Bachelor', 'Master', 'PhD']) };
+      schoolPair = pickSchoolByCountry('schools');
+      schoolTypeVal = pickSchoolTypeByCountry();
+      majorVal = pickBoth('majors');
+    } else {
+      edu = { zh: pick(['大专', '本科', '硕士']), en: pick(['Associate', 'Bachelor', 'Master']) };
+      schoolPair = pickSchoolByCountry('schools');
+      schoolTypeVal = pickSchoolTypeByCountry();
+      majorVal = pickBoth('majors');
+    }
+
+    // 学校与“学校所在国家”成对，保证一一对应（多语言：优先本地语言，回退 zh/en）
+    // schoolPair 现在包含 { nativeLang, [nativeLang], zh, en }，每个值为 [schoolName, countryName]
+    var nativeLang = schoolPair.nativeLang || 'en';
+    var schoolNameObj = {};
+    schoolNameObj[nativeLang] = schoolPair[nativeLang] ? schoolPair[nativeLang][0] : (schoolPair.zh ? schoolPair.zh[0] : '');
+    schoolNameObj.zh = schoolPair.zh ? schoolPair.zh[0] : '';
+    schoolNameObj.en = schoolPair.en ? schoolPair.en[0] : '';
+    schoolNameObj.nativeLang = nativeLang;
+    out.push(['school', schoolNameObj]);
+    
+    out.push(['major', majorVal]);
+    out.push(['education', edu]);
+    out.push(['schoolType', schoolTypeVal]);
+    
+    var countryNameObj = {};
+    countryNameObj[nativeLang] = schoolPair[nativeLang] ? schoolPair[nativeLang][1] : (schoolPair.zh ? schoolPair.zh[1] : '');
+    countryNameObj.zh = schoolPair.zh ? schoolPair.zh[1] : '';
+    countryNameObj.en = schoolPair.en ? schoolPair.en[1] : '';
+    countryNameObj.nativeLang = nativeLang;
+    out.push(['schoolCountry', countryNameObj]);
+
+    // 收入等级 / 公司规模：仅劳动年龄(18~64)有在职收入，其余按身份填“无”
+    var incomeLevel, companySize;
+    if (ageNum < 18) {
+      incomeLevel = { zh: '无收入', en: 'No income' };
+      companySize = { zh: '无', en: 'None' };
+    } else if (ageNum >= 65) {
+      incomeLevel = { zh: '退休金', en: 'Pension' };
+      companySize = { zh: '无', en: 'None' };
+    } else {
+      incomeLevel = pickBoth('incomeLevels');
+      companySize = pickBoth('companySizes');
+    }
+    out.push(['incomeLevel', incomeLevel]);
+    out.push(['companySize', companySize]);
+
+    // 技能 / 兴趣：按年龄段选取，与年龄相符（幼儿/青少年/成年/老年 各有不同）
+    var skills = pickSomeBoth('skills', 3, band);
+    var interests = pickSomeBoth('interests', 3, band);
+    out.push(['skills', skills]);
+    out.push(['interests', interests]);
+
+    // 其它双语字段
+    out.push(['personality', pickBoth('personalities')]);
+    out.push(['pet', pickBoth('pets')]);
+    out.push(['favoriteFood', pickBoth('favoriteFoods')]);
+    out.push(['travelStyle', pickBoth('travelStyles')]);
+
+    // 外貌类
+    var hairVal = (ageNum >= 60) ? { zh: '白发', en: 'White' } : pickBoth('hairColors');
+    out.push(['hairColor', hairVal]);
+    out.push(['eyeColor', pickBoth('eyeColors')]);
+    out.push(['skinTone', pickBoth('skinTones')]);
+    out.push(['bloodType', pickBoth('bloodTypes')]);
+    out.push(['bodyType', pickBoth('bodyTypes')]);
+
+    // 在线 / 安全类（安全问题与安全答案成对出现，保证一致；按国家选取，保证文化匹配）
+    var qa = pickSecurityQAByCountry(ctx.countryCode);
+    var secQObj = { zh: qa.zh[0], en: qa.en[0], nativeLang: qa.nativeLang };
+    secQObj[qa.nativeLang] = qa.native[0];
+    var secAObj = { zh: qa.zh[1], en: qa.en[1], nativeLang: qa.nativeLang };
+    secAObj[qa.nativeLang] = qa.native[1];
+    out.push(['securityQuestion', secQObj]);
+    out.push(['securityAnswer', secAObj]);
+    // 在线签名（按国家选取，保证文化匹配）
+    var sig = pickSignaturesByCountry(ctx.countryCode);
+    var sigObj = { zh: sig.zh, en: sig.en, nativeLang: sig.nativeLang };
+    sigObj[sig.nativeLang] = sig.native;
+    out.push(['onlineSignature', sigObj]);
+
+    // 语言无关字段（时区、网站）
+    out.push(['timezone', util.timezoneFor(ctx.countryCode)]);
+    out.push(['website', util.websiteFor(ctx)]);
+    return out;
+  };
+
+  /* 按国家代码返回时区，未命中回退 UTC */
+  util.timezoneFor = function (code) {
+    var TZ = (FakeID.profile && FakeID.profile.timezones) || {};
+    return TZ[code] || 'UTC';
+  };
+
+  /* 生成“网站”字段：基于用户名 handle 拼一个示例个人站点 */
+  util.websiteFor = function (ctx) {
+    ctx = ctx || {};
+    var handle = ctx.handle || util.randomHandle(8);
+    var tld = util.pick(['com', 'net', 'io', 'org', 'me', 'co']);
+    return 'https://www.' + String(handle).toLowerCase() + '.' + tld;
   };
 
   /* 国家/地区注册表 */
