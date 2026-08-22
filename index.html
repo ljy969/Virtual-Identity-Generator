@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>各国虚拟身份生成器（本地离线版）</title>
+  <!-- Content Security Policy: 防止 XSS，限制脚本/样式/字体/连接来源 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none';">
   <!-- 去除标题栏图标：用空 data URI 覆盖默认 favicon 请求 -->
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="assets/css/styles.css">

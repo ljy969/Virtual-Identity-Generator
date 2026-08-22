@@ -201,14 +201,16 @@
       var gender = opts.gender === 'random' ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
       var given = gender === 'male' ? givenMale : givenFemale;
       var givenCount = util.chance(0.6) ? 2 : 1;
+      var surname = util.pick(surnames);
       var givenName = '';
       for (var gi = 0; gi < givenCount; gi++) givenName += util.pick(given);
-      var name = util.pick(surnames) + givenName;
+      var name = surname + givenName;
       var bdate = util.birthDate(opts);
       var rc = resolveRegionCity(opts);
       var id = util.makeChinaID(rc.city.code, bdate);
       var phone = util.pick(phonePrefixes) + util.pad(util.randInt(0, 99999999), 8);
-      var uname = util.randomHandle(8) + util.randInt(10, 999);
+      // 使用拼音生成用户名，保持姓名关联性
+      var uname = (util.toPinyin(surname) + util.toPinyin(givenName)).toLowerCase().replace(/[^a-z]/g, '') + util.randInt(10, 999);
       var email = uname + '@' + util.emailDomain(opts, mailDomains);
       // 使用解析得到的区/县（选中或随机）；直辖市/县级市等无 districts 时 district 为空，city 本身即区级
       var district = rc.district ? rc.district : '';

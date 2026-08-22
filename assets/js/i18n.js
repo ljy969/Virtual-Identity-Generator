@@ -234,7 +234,7 @@
   }
 
   var pref;
-  try { pref = localStorage.getItem(STORAGE_KEY); } catch (e) { pref = null; }
+  try { pref = localStorage.getItem(STORAGE_KEY); } catch (e) { pref = null; console.warn('[i18n] localStorage 读取失败，语言偏好将不持久化:', e); }
   if (SUPPORTED.indexOf(pref) < 0) pref = 'system';
 
   function effective() {
@@ -283,7 +283,10 @@
   i18n.setLang = function (l, persist) {
     if (l !== 'system' && SUPPORTED.indexOf(l) < 0) l = 'system';
     pref = l;
-    if (persist !== false) { try { localStorage.setItem(STORAGE_KEY, l); } catch (e) {} }
+    if (persist !== false) {
+      try { localStorage.setItem(STORAGE_KEY, l); }
+      catch (e) { console.warn('[i18n] localStorage 写入失败，语言偏好将不持久化:', e); }
+    }
     current = effective();
     notify();
   };

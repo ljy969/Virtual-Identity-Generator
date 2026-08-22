@@ -49,13 +49,28 @@ var util = (function (global) {
   var util = (FakeID.util = {});
 
   /**
+   * 加密安全的随机数生成 (0-1)
+   * 使用 crypto.getRandomValues，回退到 Math.random (极旧浏览器)
+   * @returns {number} 0-1 之间的随机数
+   */
+  util.secureRandom = function () {
+    try {
+      var arr = new Uint32Array(1);
+      crypto.getRandomValues(arr);
+      return arr[0] / 0x100000000;
+    } catch (e) {
+      return Math.random();
+    }
+  };
+
+  /**
    * 生成 [min, max] 之间的随机整数（含边界）
    * @param {number} min - 最小值
    * @param {number} max - 最大值
    * @returns {number} 随机整数
    */
   util.randInt = function (min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(util.secureRandom() * (max - min + 1)) + min;
   };
 
   /**
@@ -65,7 +80,7 @@ var util = (function (global) {
    * @returns {T} 随机元素
    */
   util.pick = function (arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return arr[Math.floor(util.secureRandom() * arr.length)];
   };
 
   /**
@@ -74,7 +89,7 @@ var util = (function (global) {
    * @returns {boolean}
    */
   util.chance = function (p) {
-    return Math.random() < p;
+    return util.secureRandom() < p;
   };
 
   /**
@@ -95,10 +110,19 @@ var util = (function (global) {
    * @param {number} endYear - 结束年份
    * @returns {Date} 随机日期
    */
+  /**
+   * 在 [startYear, endYear] 范围内生成随机日期
+   * 使用整数天数采样，避免 DST 导致的边界日期权重偏差
+   * @param {number} startYear - 起始年份
+   * @param {number} endYear - 结束年份
+   * @returns {Date} 随机日期 (UTC 中午 12:00，避免时区跨日)
+   */
   util.randomDate = function (startYear, endYear) {
-    var start = new Date(startYear, 0, 1).getTime();
-    var end = new Date(endYear, 11, 31).getTime();
-    return new Date(start + Math.random() * (end - start));
+    var start = Date.UTC(startYear, 0, 1, 12, 0, 0);
+    var end = Date.UTC(endYear, 11, 31, 12, 0, 0);
+    var days = Math.floor((end - start) / 86400000);
+    var offset = util.randInt(0, days);
+    return new Date(start + offset * 86400000);
   };
 
   /**
@@ -149,17 +173,31 @@ var util = (function (global) {
     var month, day, d;
     // 使用拒绝采样：生成日期后验证 ageFrom 结果，不符则重试
     // 这样可自动处理闰年 2/29 等边界情况
-    var maxAttempts = 10;
+    var maxAttempts = 100; // 增加尝试次数，极小概率仍失败则抛出错误
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       month = util.randInt(0, maxMonth);
-      var maxDay = (month < maxMonth) ? 28 : now.getDate();
-      day = util.randInt(1, Math.max(1, maxDay));
+      // 正确计算该月的最大天数（考虑闰年）
+      var maxDay = new Date(targetYear, month + 1, 0).getDate();
+      // 如果是当月，不能超过今天
+      if (month === maxMonth) {
+        maxDay = Math.min(maxDay, now.getDate());
+      }
+      day = util.randInt(1, maxDay);
       d = new Date(targetYear, month, day);
       // 验证生成的日期确实产生目标年龄（处理闰年回滚等情况）
       if (util.ageFrom(d) === age) return d;
     }
-    // 极端情况下回退：使用当月1日
-    return new Date(targetYear, 0, 1);
+    // 兜底：按顺序尝试 targetYear 年的每一天，直到找到匹配的
+    for (month = 0; month <= maxMonth; month++) {
+      var daysInMonth = new Date(targetYear, month + 1, 0).getDate();
+      var endDay = (month === maxMonth) ? now.getDate() : daysInMonth;
+      for (day = 1; day <= endDay; day++) {
+        d = new Date(targetYear, month, day);
+        if (util.ageFrom(d) === age) return d;
+      }
+    }
+    // 理论上不应到达这里，但以防万一抛出错误而非静默返回错误日期
+    throw new Error('无法为年龄 ' + age + ' 生成有效出生日期');
   };
 
   /**
@@ -288,6 +326,47 @@ var util = (function (global) {
     return out;
   };
 
+  /* 简易中文拼音映射（常用姓氏/名字字），用于生成可读的用户名 */
+  // 仅覆盖 china.js 中使用的常用姓氏和名字字，完整拼音库体积过大，此处仅作演示
+  util.pinyinMap = {
+    // 常用姓氏
+    '王': 'wang', '李': 'li', '张': 'zhang', '刘': 'liu', '陈': 'chen', '杨': 'yang', '赵': 'zhao', '黄': 'huang',
+    '周': 'zhou', '吴': 'wu', '徐': 'xu', '孙': 'sun', '胡': 'hu', '朱': 'zhu', '高': 'gao', '林': 'lin',
+    '何': 'he', '郭': 'guo', '马': 'ma', '罗': 'luo', '梁': 'liang', '宋': 'song', '郑': 'zheng', '谢': 'xie',
+    '韩': 'han', '唐': 'tang', '冯': 'feng', '于': 'yu', '董': 'dong', '萧': 'xiao', '程': 'cheng', '曹': 'cao',
+    '袁': 'yuan', '邓': 'deng', '许': 'xu', '傅': 'fu', '沈': 'shen', '曾': 'zeng', '彭': 'peng', '吕': 'lv',
+    '苏': 'su', '卢': 'lu', '蒋': 'jiang', '蔡': 'cai', '贾': 'jia', '丁': 'ding', '魏': 'wei', '薛': 'xue',
+    '叶': 'ye', '阎': 'yan', '余': 'yu', '潘': 'pan', '杜': 'du', '戴': 'dai', '夏': 'xia', '钟': 'zhong',
+    '汪': 'wang', '田': 'tian', '任': 'ren', '姜': 'jiang', '范': 'fan', '方': 'fang', '石': 'shi', '姚': 'yao',
+    '谭': 'tan', '廖': 'liao', '邹': 'zou', '熊': 'xiong', '金': 'jin', '陆': 'lu', '郝': 'hao', '孔': 'kong',
+    '白': 'bai', '崔': 'cui', '康': 'kang', '毛': 'mao', '邱': 'qiu', '秦': 'qin', '江': 'jiang', '史': 'shi',
+    '顾': 'gu', '侯': 'hou', '邵': 'shao', '孟': 'meng', '龙': 'long', '万': 'wan', '段': 'duan', '钱': 'qian',
+    '汤': 'tang', '尹': 'yin', '黎': 'li', '易': 'yi', '常': 'chang', '武': 'wu', '乔': 'qiao', '贺': 'he',
+    '赖': 'lai', '龚': 'gong', '文': 'wen', '尚': 'shang', '辛': 'xin', '庞': 'pang', '樊': 'fan', '兰': 'lan',
+    '殷': 'yin', '施': 'shi', '陶': 'tao', '翟': 'zhai', '安': 'an', '颜': 'yan', '倪': 'ni', '严': 'yan',
+    '牛': 'niu', '温': 'wen', '芦': 'lu', '季': 'ji', '俞': 'yu', '章': 'zhang',
+    // 常用名字字
+    '伟': 'wei', '强': 'qiang', '磊': 'lei', '军': 'jun', '洋': 'yang', '勇': 'yong', '杰': 'jie', '涛': 'tao',
+    '明': 'ming', '超': 'chao', '刚': 'gang', '平': 'ping', '辉': 'hui', '鹏': 'peng', '华': 'hua', '飞': 'fei',
+    '鑫': 'xin', '波': 'bo', '斌': 'bin', '宇': 'yu', '浩': 'hao', '凯': 'kai', '睿': 'rui', '轩': 'xuan',
+    '昊': 'hao', '晨': 'chen', '旭': 'xu', '然': 'ran', '梓': 'zi', '铭': 'ming',
+    '芳': 'fang', '娟': 'juan', '敏': 'min', '静': 'jing', '丽': 'li', '艳': 'yan', '梅': 'mei', '琳': 'lin',
+    '雪': 'xue', '倩': 'qian', '婷': 'ting', '莹': 'ying', '璐': 'lu', '萌': 'meng', '琪': 'qi', '妍': 'yan',
+    '悦': 'yue', '欣': 'xin', '彤': 'tong', '雅': 'ya', '涵': 'han', '萱': 'xuan', '怡': 'yi', '薇': 'wei',
+    '晴': 'qing', '玥': 'yue', '诗': 'shi', '梓': 'zi', '欣': 'xin', '悦': 'yue'
+  };
+
+  /* 将中文字符串转写为拼音（无声调，小写），未收录字符用随机字母替代 */
+  util.toPinyin = function (str) {
+    if (!str) return '';
+    var out = '';
+    for (var i = 0; i < str.length; i++) {
+      var ch = str.charAt(i);
+      out += util.pinyinMap[ch] || (util.chance(0.5) ? 'x' : 'z'); // 未收录字符用 x/z 占位
+    }
+    return out;
+  };
+
   /* 生成随机 ASCII 用户名片段（中文姓名等无法转写为拉丁字母时使用），保证不以 "user" 开头 */
   util.randomHandle = function (len) {
     len = len || 8;
@@ -306,14 +385,13 @@ var util = (function (global) {
   };
 
   /* 中国大陆身份证校验码（GB 11643-1999, mod 11-2） */
+  // 权重因子：从左往右（身份证第1位到第17位）对应 [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2]
   util.chinaIDChecksum = function (body17) {
-    // 权重因子：从右往左（身份证第17位到第1位）对应 [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2]
-    // 即 body17[16] * 7, body17[15] * 9, ..., body17[0] * 2
     var w = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
     var c = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
     var sum = 0;
     for (var i = 0; i < 17; i++) {
-      sum += parseInt(body17.charAt(16 - i), 10) * w[i];
+      sum += parseInt(body17.charAt(i), 10) * w[i];
     }
     return c[sum % 11];
   };
@@ -370,8 +448,18 @@ var util = (function (global) {
     var first = util.pick(gender === 'male' ? cfg.givenMale : cfg.givenFemale);
     var last = util.pick(cfg.surnames);
     var bdate = util.birthDate(opts);
-    var handle = util.deaccent(first + '.' + last).toLowerCase().replace(/[^a-z.]/g, '');
-    // 非拉丁字母姓名（日文等）deaccent 后可能为空，回退到随机 handle
+    var countryCode = opts.countryCode || cfg.code;
+    // 为非拉丁语系国家生成拼音/罗马音用户名，保持姓名关联性
+    var handle;
+    if (countryCode === 'china') {
+      handle = (util.toPinyin(last) + '.' + util.toPinyin(first)).toLowerCase().replace(/[^a-z.]/g, '');
+    } else if (countryCode === 'japan') {
+      // 日文姓名：姓在前，名在后，使用简单罗马音映射（此处简化为随机，完整映射需更大表）
+      handle = util.randomHandle(8);
+    } else {
+      handle = util.deaccent(first + '.' + last).toLowerCase().replace(/[^a-z.]/g, '');
+    }
+    // 兜底：若转写后为空，使用随机 handle
     if (!handle) handle = util.randomHandle(8);
     var num = util.randInt(10, 999);
     var username = handle.replace(/\./g, '') + num;
@@ -413,53 +501,61 @@ var util = (function (global) {
    * 各字段：label 为英文品牌名（回退显示），prefixes 为 IIN/BIN 前缀候选，
    * len 为卡号位数（不含校验位），cvvLen 为安全码位数。卡号均通过 Luhn 校验。 */
   util.cardTypes = {
-    visa:            { label: 'Visa',                prefixes: ['4'],                                                  len: 16, cvvLen: 3 },
-    visaElectron:    { label: 'Visa Electron',       prefixes: ['4026','417500','4405','4508','4844','4913','4917'],   len: 16, cvvLen: 3 },
-    mastercard:      { label: 'Mastercard',          prefixes: ['51','52','53','54','55','2221','223','224','225','226','227','228','229','23','24','25','26','270','271','2720'], len: 16, cvvLen: 3 },
-    amex:            { label: 'American Express',    prefixes: ['34','37'],                                            len: 15, cvvLen: 4 },
-    discover:        { label: 'Discover',            prefixes: ['6011','65','644','645','646','647','648','649'],     len: 16, cvvLen: 3 },
-    jcb:             { label: 'JCB',                 prefixes: ['3528','3529','353','354','355','356','357','358'],    len: 16, cvvLen: 3 },
-    unionpay:        { label: 'UnionPay',            prefixes: ['62'],                                                 len: 19, cvvLen: 3 },
-    diners:          { label: 'Diners Club',         prefixes: ['300','301','302','303','304','305','3095','36','38','39'], len: 14, cvvLen: 3 },
-    carteBlanche:    { label: 'Carte Blanche',       prefixes: ['300','305'],                                          len: 14, cvvLen: 3 },
-    maestro:         { label: 'Maestro',             prefixes: ['50','56','57','58','6304','6759','6761','6762','6763'], len: 16, cvvLen: 3 },
-    rupay:           { label: 'RuPay',               prefixes: ['60','65','81','82','508','6'],                        len: 16, cvvLen: 3 },
-    mir:             { label: 'Mir',                 prefixes: ['2200','2201','2202','2203','2204'],                   len: 16, cvvLen: 3 },
-    troy:            { label: 'Troy',                prefixes: ['979200','979201','979202','979203','979289'],          len: 16, cvvLen: 3 },
-    elo:             { label: 'Elo',                 prefixes: ['401178','401179','438935','457631','457632','504175','627780','636297','636368','650','651','655'], len: 16, cvvLen: 3 },
-    dankort:         { label: 'Dankort',             prefixes: ['5019','4571','4'],                                    len: 16, cvvLen: 3 },
-    interac:         { label: 'Interac',             prefixes: ['4506','4725','4726','639'],                           len: 16, cvvLen: 3 },
-    verve:           { label: 'Verve',               prefixes: ['506099','506198','650002','650027'],                   len: 16, cvvLen: 3 },
-    uatp:            { label: 'UATP',                prefixes: ['1'],                                                   len: 15, cvvLen: 3 },
-    laser:           { label: 'Laser',               prefixes: ['6304','6706','6771','6709'],                          len: 16, cvvLen: 3 },
-    switch:          { label: 'Switch',              prefixes: ['4903','4905','4911','4936','564182','633110','6333','6759'], len: 16, cvvLen: 3 },
-    solo:            { label: 'Solo',                prefixes: ['6334','6767'],                                         len: 16, cvvLen: 3 },
-    bancontact:      { label: 'Bancontact',          prefixes: ['6703','6799','4871'],                                  len: 16, cvvLen: 3 },
-    enroute:         { label: 'EnRoute',             prefixes: ['2014','2149'],                                         len: 15, cvvLen: 3 },
-    voyager:         { label: 'Voyager',             prefixes: ['8699'],                                               len: 15, cvvLen: 3 },
-    instapayment:    { label: 'InstaPayment',        prefixes: ['637','638','639'],                                     len: 16, cvvLen: 3 },
-    postepay:        { label: 'PostePay',            prefixes: ['402360','457033','463799','650005'],                   len: 16, cvvLen: 3 },
-    sbercard:        { label: 'SberCard',            prefixes: ['6390','6764'],                                         len: 16, cvvLen: 3 },
-    naps:            { label: 'NAPS',                prefixes: ['421676','409775'],                                     len: 16, cvvLen: 3 },
-    kcp:             { label: 'KCP',                 prefixes: ['366','367','368','369'],                               len: 16, cvvLen: 3 },
-    meps:            { label: 'MEPS',                prefixes: ['629','600','601','602'],                               len: 16, cvvLen: 3 },
-    bccard:          { label: 'BC Card',             prefixes: ['940','941','942','943','944','945','946','947','948','949'], len: 16, cvvLen: 3 },
-    polcard:         { label: 'PolCard',             prefixes: ['6759','6760','6761'],                                  len: 16, cvvLen: 3 },
-    girocard:        { label: 'Girocard',            prefixes: ['4799','4798','4797'],                                  len: 16, cvvLen: 3 },
-    carteBancaire:   { label: 'Carte Bancaire',      prefixes: ['4972','6701','6702'],                                  len: 16, cvvLen: 3 },
-    lankapay:        { label: 'LankaPay',            prefixes: ['3571','3572','3573'],                                  len: 16, cvvLen: 3 },
-    nepalpay:        { label: 'NepalPay',            prefixes: ['4299','4354'],                                         len: 16, cvvLen: 3 },
-    bca:             { label: 'BCA',                 prefixes: ['409998','433662','459922','549646','549647'],          len: 16, cvvLen: 3 }
+    visa:            { label: 'Visa',                prefixes: ['4'],                                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    visaElectron:    { label: 'Visa Electron',       prefixes: ['4026','417500','4405','4508','4844','4913','4917'],   len: 16, cvvLen: 3, format: '4-4-4-4' },
+    mastercard:      { label: 'Mastercard',          prefixes: ['51','52','53','54','55','2221','223','224','225','226','227','228','229','23','24','25','26','270','271','2720'], len: 16, cvvLen: 3, format: '4-4-4-4' },
+    amex:            { label: 'American Express',    prefixes: ['34','37'],                                            len: 15, cvvLen: 4, format: '4-6-5' },
+    discover:        { label: 'Discover',            prefixes: ['6011','65','644','645','646','647','648','649'],     len: 16, cvvLen: 3, format: '4-4-4-4' },
+    jcb:             { label: 'JCB',                 prefixes: ['3528','3529','353','354','355','356','357','358'],    len: 16, cvvLen: 3, format: '4-4-4-4' },
+    unionpay:        { label: 'UnionPay',            prefixes: ['62'],                                                 len: 19, cvvLen: 3, format: '4-4-4-4-3' },
+    diners:          { label: 'Diners Club',         prefixes: ['300','301','302','303','304','305','3095','36','38','39'], len: 14, cvvLen: 3, format: '4-4-4-2' },
+    carteBlanche:    { label: 'Carte Blanche',       prefixes: ['300','305'],                                          len: 14, cvvLen: 3, format: '4-4-4-2' },
+    maestro:         { label: 'Maestro',             prefixes: ['50','56','57','58','6304','6759','6761','6762','6763'], len: 16, cvvLen: 3, format: '4-4-4-4' },
+    rupay:           { label: 'RuPay',               prefixes: ['60','65','81','82','508','6'],                        len: 16, cvvLen: 3, format: '4-4-4-4' },
+    mir:             { label: 'Mir',                 prefixes: ['2200','2201','2202','2203','2204'],                   len: 16, cvvLen: 3, format: '4-4-4-4' },
+    troy:            { label: 'Troy',                prefixes: ['979200','979201','979202','979203','979289'],          len: 16, cvvLen: 3, format: '4-4-4-4' },
+    elo:             { label: 'Elo',                 prefixes: ['401178','401179','438935','457631','457632','504175','627780','636297','636368','650','651','655'], len: 16, cvvLen: 3, format: '4-4-4-4' },
+    dankort:         { label: 'Dankort',             prefixes: ['5019','4571','4'],                                    len: 16, cvvLen: 3, format: '4-4-4-4' },
+    interac:         { label: 'Interac',             prefixes: ['4506','4725','4726','639'],                           len: 16, cvvLen: 3, format: '4-4-4-4' },
+    verve:           { label: 'Verve',               prefixes: ['506099','506198','650002','650027'],                   len: 16, cvvLen: 3, format: '4-4-4-4' },
+    uatp:            { label: 'UATP',                prefixes: ['1'],                                                   len: 15, cvvLen: 3, format: '4-5-6' },
+    laser:           { label: 'Laser',               prefixes: ['6304','6706','6771','6709'],                          len: 16, cvvLen: 3, format: '4-4-4-4' },
+    switch:          { label: 'Switch',              prefixes: ['4903','4905','4911','4936','564182','633110','6333','6759'], len: 16, cvvLen: 3, format: '4-4-4-4' },
+    solo:            { label: 'Solo',                prefixes: ['6334','6767'],                                         len: 16, cvvLen: 3, format: '4-4-4-4' },
+    bancontact:      { label: 'Bancontact',          prefixes: ['6703','6799','4871'],                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    enroute:         { label: 'EnRoute',             prefixes: ['2014','2149'],                                         len: 15, cvvLen: 3, format: '4-6-5' },
+    voyager:         { label: 'Voyager',             prefixes: ['8699'],                                               len: 15, cvvLen: 3, format: '4-6-5' },
+    instapayment:    { label: 'InstaPayment',        prefixes: ['637','638','639'],                                     len: 16, cvvLen: 3, format: '4-4-4-4' },
+    postepay:        { label: 'PostePay',            prefixes: ['402360','457033','463799','650005'],                   len: 16, cvvLen: 3, format: '4-4-4-4' },
+    sbercard:        { label: 'SberCard',            prefixes: ['6390','6764'],                                         len: 16, cvvLen: 3, format: '4-4-4-4' },
+    naps:            { label: 'NAPS',                prefixes: ['421676','409775'],                                     len: 16, cvvLen: 3, format: '4-4-4-4' },
+    kcp:             { label: 'KCP',                 prefixes: ['366','367','368','369'],                               len: 16, cvvLen: 3, format: '4-4-4-4' },
+    meps:            { label: 'MEPS',                prefixes: ['629','600','601','602'],                               len: 16, cvvLen: 3, format: '4-4-4-4' },
+    bccard:          { label: 'BC Card',             prefixes: ['940','941','942','943','944','945','946','947','948','949'], len: 16, cvvLen: 3, format: '4-4-4-4' },
+    polcard:         { label: 'PolCard',             prefixes: ['6759','6760','6761'],                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    girocard:        { label: 'Girocard',            prefixes: ['4799','4798','4797'],                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    carteBancaire:   { label: 'Carte Bancaire',      prefixes: ['4972','6701','6702'],                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    lankapay:        { label: 'LankaPay',            prefixes: ['3571','3572','3573'],                                  len: 16, cvvLen: 3, format: '4-4-4-4' },
+    nepalpay:        { label: 'NepalPay',            prefixes: ['4299','4354'],                                         len: 16, cvvLen: 3, format: '4-4-4-4' },
+    bca:             { label: 'BCA',                 prefixes: ['409998','433662','459922','549646','549647'],          len: 16, cvvLen: 3, format: '4-4-4-4' }
   };
   util.cardTypeKeys = function () { return Object.keys(util.cardTypes); };
 
   // 根据已生成的数字串计算 Luhn 校验位（用于补在卡号末尾）
+  // 算法：从右往左第 2 位开始（含校验位在内的总长度），每隔一位乘以 2
+  // 总长度 = body.length + 1。从右往左数，偶数位（2,4,6...）倍增。
+  // body 中下标 i 对应的从右往左位置 = body.length - i（1-indexed，不含校验位）
+  // 加上校验位后，从右往左位置 = body.length - i + 1
+  // 倍增条件：(body.length - i + 1) % 2 === 0  即  (body.length - i) % 2 === 1
   util.luhnCheckDigit = function (body) {
-    var sum = 0, alt = true;
+    var sum = 0;
     for (var i = body.length - 1; i >= 0; i--) {
       var d = parseInt(body.charAt(i), 10);
-      if (alt) { d *= 2; if (d > 9) d -= 9; }
-      sum += d; alt = !alt;
+      // 从右往左第 2、4、6... 位（含校验位）倍增：即 (body.length - i) % 2 === 1
+      if ((body.length - i) % 2 === 1) {
+        d *= 2; if (d > 9) d -= 9;
+      }
+      sum += d;
     }
     return (10 - (sum % 10)) % 10;
   };
@@ -484,10 +580,22 @@ var util = (function (global) {
     return { key: key, type: t.label, number: number, expiry: expiry, cvv: cvv };
   };
 
-  // 按卡组织格式化卡号展示（AmEx 为 4-6-5，其余为 4-4-4-4）
+  // 按卡组织格式化卡号展示（使用 cardTypes 中定义的 format 字段，如 '4-6-5', '4-5-6', '4-4-4-4' 等）
   util.formatCardNumber = function (num, key) {
-    if (key === 'amex') return num.replace(/(\d{4})(\d{6})(\d{5})/, '$1 $2 $3');
-    return num.replace(/(.{4})/g, '$1 ').trim();
+    var t = util.cardTypes[key];
+    var format = (t && t.format) ? t.format : '4-4-4-4';
+    var parts = format.split('-');
+    var out = '';
+    var idx = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var len = parseInt(parts[i], 10);
+      out += num.substr(idx, len);
+      idx += len;
+      if (i < parts.length - 1) out += ' ';
+    }
+    // 如果还有剩余字符，追加到末尾
+    if (idx < num.length) out += ' ' + num.substr(idx);
+    return out.trim();
   };
 
   // 返回信用卡相关字段数组（便于所有国家复用）

@@ -61,10 +61,10 @@
     // 校验算法：从右往左第2位开始，权重 2,3,4,5,6,7,2,3,4,5,6
     // 校验位 = (11 - (加权和 % 11)) % 10
     var body = util.pad(util.randInt(0, 99999999999), 11); // 前11位
-    var weights = [6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2]; // 从左往右对应 body[0]..body[10]
+    var weights = [2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6]; // 从右往左对应 body[10]..body[0]
     var sum = 0;
     for (var i = 0; i < 11; i++) {
-      sum += parseInt(body.charAt(i), 10) * weights[i];
+      sum += parseInt(body.charAt(10 - i), 10) * weights[i];
     }
     var check = (11 - (sum % 11)) % 10;
     return body + check;

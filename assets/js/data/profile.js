@@ -4,7 +4,11 @@
  * 依赖：util.js（需在其后加载，本文件仅登记数据，不调用生成逻辑）。
  *
  * 说明：schools / kindergartens / primarySchools / middleSchools / highSchools
- * 均为 [学校名, 学校所在国家] 的二元组，保证“学校”与“学校所在国家”一一对应。 */
+ * 均为 [学校名, 学校所在国家] 的二元组，保证“学校”与“学校所在国家”一一对应。
+ *
+ * ⚠️ 维护警告：本文件使用“并行数组”结构（zh/en 数组下标对应），要求中英文条目严格按相同顺序维护。
+ * 新增/删除/调序条目时，必须同步更新 zh 和 en 两个数组，否则会导致中英显示错位（如中文显示“北京大学”对应英文 "Harvard University"）。
+ * 推荐未来迁移到显式对象结构：{ zh: [...], en: [...], nativeLang: '...', native: [...] }，参考 securityQAByCountry/signaturesByCountry 的写法。 */
 (function (global) {
   'use strict';
   var FakeID = global.FakeID;

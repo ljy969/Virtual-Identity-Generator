@@ -336,39 +336,52 @@
   }
 
   // 按当前语言渲染结果（字段标签与性别/年龄类别职业值均本地化）
+  // 使用 DOM API 而非 innerHTML，防止 XSS
   function renderResults() {
     if (!lastBatches) return;
     var cLabel = i18n.countryLabel(lastCountryCode);
     var cards = [], texts = [];
+    // 清空结果容器
+    results.innerHTML = '';
     for (var i = 0; i < lastBatches.length; i++) {
       var fields = lastBatches[i];
-      var rows = fields.map(function (f) {
-        return '<tr><th>' + esc(i18n.field(f[0])) + '</th><td>' + esc(localizeValue(f[0], f[1])) + '</td></tr>';
-      }).join('');
-      cards.push('<article class="card"><h3>' + esc(cLabel) + ' #' + (i + 1) + '</h3><table>' + rows + '</table></article>');
+      var article = document.createElement('article');
+      article.className = 'card';
+      var h3 = document.createElement('h3');
+      h3.textContent = cLabel + ' #' + (i + 1);
+      article.appendChild(h3);
+      var table = document.createElement('table');
+      for (var j = 0; j < fields.length; j++) {
+        var f = fields[j];
+        var tr = document.createElement('tr');
+        var th = document.createElement('th');
+        th.textContent = i18n.field(f[0]);
+        var td = document.createElement('td');
+        td.textContent = localizeValue(f[0], f[1]);
+        tr.appendChild(th);
+        tr.appendChild(td);
+        table.appendChild(tr);
+      }
+      article.appendChild(table);
+      results.appendChild(article);
       texts.push(cLabel + ' #' + (i + 1) + '\n' + fields.map(function (f) {
         return i18n.field(f[0]) + '：' + localizeValue(f[0], f[1]);
       }).join('\n'));
     }
-    results.innerHTML = cards.join('');
     lastText = texts.join('\n\n');
   }
 
   function onCopy() {
     if (!lastText) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(lastText).then(function () { flash(i18n.t('flash.copied')); }, function () { fallbackCopy(lastText); });
+      navigator.clipboard.writeText(lastText).then(function () { flash(i18n.t('flash.copied')); }, function () {
+        // Clipboard API 失败（如非安全上下文），提示用户手动复制
+        flash(i18n.t('flash.copyfail'));
+      });
     } else {
-      fallbackCopy(lastText);
+      // 无 Clipboard API 支持，提示用户手动复制
+      flash(i18n.t('flash.copyfail'));
     }
-  }
-  function fallbackCopy(t) {
-    var ta = document.createElement('textarea');
-    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); flash(i18n.t('flash.copied.compat')); }
-    catch (e) { flash(i18n.t('flash.copyfail')); }
-    document.body.removeChild(ta);
   }
 
   function onExport() {
@@ -383,9 +396,16 @@
     flash(i18n.t('flash.exported'));
   }
   function csvCell(s) {
-    s = String(s).replace(/\r?\n/g, ' ');
-    // 防御 CSV 公式注入：以 = + - @ 开头的字符串前缀单引号
-    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    s = String(s);
+    // 移除控制字符 (除 \t \n \r 外的 ASCII 0-31 和 127)
+    s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    // 统一换行为空格
+    s = s.replace(/\r?\n/g, ' ').replace(/\r/g, ' ');
+    // 防御 CSV 公式注入：去除前导空白后，若以 = + - @ 开头则前缀单引号
+    // Excel/Sheets 解析时会忽略前导空白再判断公式前缀
+    var trimmed = s.replace(/^[\s\t\r\n]+/, '');
+    if (/^[=+\-@]/.test(trimmed)) s = "'" + s;
+    // 包含逗号、双引号、换行时用双引号包裹并转义内部双引号
     if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   }

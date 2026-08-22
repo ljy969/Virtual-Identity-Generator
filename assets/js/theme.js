@@ -16,7 +16,7 @@
     : null;
 
   var pref;
-  try { pref = localStorage.getItem(KEY); } catch (e) { pref = null; }
+  try { pref = localStorage.getItem(KEY); } catch (e) { pref = null; console.warn('[theme] localStorage 读取失败，主题偏好将不持久化:', e); }
   if (SUPPORTED.indexOf(pref) < 0) pref = 'system';
 
   var listeners = [];
@@ -45,7 +45,8 @@
   theme.set = function (t) {
     if (SUPPORTED.indexOf(t) < 0) t = 'system';
     pref = t;
-    try { localStorage.setItem(KEY, t); } catch (e) {}
+    try { localStorage.setItem(KEY, t); }
+    catch (e) { console.warn('[theme] localStorage 写入失败，主题偏好将不持久化:', e); }
     applyAttr();
     notify();
   };

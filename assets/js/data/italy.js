@@ -30,36 +30,53 @@
   var streets = ['Via Roma','Via Garibaldi','Corso Italia','Via Dante','Via Galileo','Via Marconi','Viale dei Mille','Via Trento','Via Trieste','Via Bologna'];
   var companies = ['Italia Tech SRL','Mediterraneo SpA','Colosseo Media','Serenissima Logistics','Vesuvio Software','Adriatico Commerce'];
   var jobs = util.occupationPool('it');
-  function cf() {
+  function cf(ctx) {
     // Codice Fiscale 格式：LLLNNNYYMDDZZZZX (16字符)
     // LLL: 姓氏辅音 (3字母) - 简化为随机大写字母
     // NNN: 名字辅音 (3字母) - 简化为随机大写字母
     // YY: 出生年份后两位
     // M: 出生月份字母 (A-L)
     // DD: 出生日 (男1-31, 女41-71)
-    // ZZZZ: 出生地编码 (4字符) - 简化为随机
-    // X: 校验字符 - 简化为随机字母
-    // 注意：这是演示用简化实现，非真实合法 CF
+    // ZZZZ: 出生地编码 (4字符) - 使用真实地籍编码样本
+    // X: 校验字符 - 按官方算法计算
+    // 注意：这是演示用简化实现，姓名辅音提取和地籍编码为随机，但校验字符算法正确
     var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     var n = '0123456789';
     var months = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, 12);
+    // 意大利地籍编码样本 (真实编码首字母+3位数字)
+    var cadastralCodes = ['H501','F205','D612','L219','M261','B354','A944','C351','E815','G273'];
     var out = '';
-    // 姓氏3字母
+    // 姓氏3字母 (随机大写)
     for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
-    // 名字3字母
+    // 名字3字母 (随机大写)
     for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
     // 年份2位 (随机 1950-2004)
     out += String(util.randInt(50, 104)).slice(-2);
     // 月份1字母
     out += months.charAt(util.randInt(0, 11));
-    // 日期2位
-    var day = util.randInt(1, 31);
+    // 日期2位 (含性别偏移)
+    var gender = ctx && ctx.gender ? ctx.gender : (util.chance(0.5) ? 'male' : 'female');
+    var day = util.randInt(1, 28); // 简化：避免月份天数问题
+    if (gender === 'female') day += 40;
     out += util.pad(day, 2);
-    // 出生地4字符 (字母+数字)
-    for (var i = 0; i < 4; i++) out += (i % 2 === 0 ? s : n).charAt(util.randInt(0, i % 2 === 0 ? 25 : 9));
-    // 校验字符
-    out += s.charAt(util.randInt(0, 25));
-    return out;
+    // 出生地4字符
+    out += util.pick(cadastralCodes);
+    // 校验字符 (官方算法: 奇偶位分别加权求和模26)
+    var oddMap = {'0':1,'1':0,'2':5,'3':7,'4':9,'5':13,'6':15,'7':17,'8':19,'9':21,
+      'A':1,'B':0,'C':5,'D':7,'E':9,'F':13,'G':15,'H':17,'I':19,'J':21,
+      'K':2,'L':4,'M':18,'N':20,'O':11,'P':3,'Q':6,'R':8,'S':12,'T':14,'U':16,'V':10,'W':22,'X':25,'Y':24,'Z':23};
+    var evenMap = {'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,
+      'A':0,'B':1,'C':2,'D':3,'E':4,'F':5,'G':6,'H':7,'I':8,'J':9,
+      'K':10,'L':11,'M':12,'N':13,'O':14,'P':15,'Q':16,'R':17,'S':18,'T':19,'U':20,'V':21,'W':22,'X':23,'Y':24,'Z':25};
+    var sum = 0;
+    for (var i = 0; i < 15; i++) {
+      var ch = out.charAt(i);
+      // 从右往左第1位(索引14)为奇数位，第2位为偶数位... 即 (15-i) % 2 === 1 为奇数位
+      if ((15 - i) % 2 === 1) sum += oddMap[ch] || 0;
+      else sum += evenMap[ch] || 0;
+    }
+    var checkChar = s.charAt(sum % 26);
+    return out + checkChar;
   }
   FakeID.registerCountry('italy', {
     label: '意大利',
@@ -73,7 +90,7 @@
         phonePrefix: ['320','330','340','347','348','349','351','392','393','380'],
         phoneLen: 7,
         idLabel: 'cf',
-        idFn: function () { return cf(); },
+        idFn: function (ctx) { return cf(ctx); },
         addressFn: function (u, ctx) {
           var city = ctx.city ? (typeof ctx.city === 'string' ? ctx.city : ctx.city.name) : '';
           return u.pick(streets) + ' ' + u.randInt(1, 199) + ', ' + city;
