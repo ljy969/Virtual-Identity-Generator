@@ -31,9 +31,34 @@
   var companies = ['Italia Tech SRL','Mediterraneo SpA','Colosseo Media','Serenissima Logistics','Vesuvio Software','Adriatico Commerce'];
   var jobs = util.occupationPool('it');
   function cf() {
-    var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Codice Fiscale 格式：LLLNNNYYMDDZZZZX (16字符)
+    // LLL: 姓氏辅音 (3字母) - 简化为随机大写字母
+    // NNN: 名字辅音 (3字母) - 简化为随机大写字母
+    // YY: 出生年份后两位
+    // M: 出生月份字母 (A-L)
+    // DD: 出生日 (男1-31, 女41-71)
+    // ZZZZ: 出生地编码 (4字符) - 简化为随机
+    // X: 校验字符 - 简化为随机字母
+    // 注意：这是演示用简化实现，非真实合法 CF
+    var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var n = '0123456789';
+    var months = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, 12);
     var out = '';
-    for (var i = 0; i < 16; i++) out += s.charAt(util.randInt(0, s.length - 1));
+    // 姓氏3字母
+    for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
+    // 名字3字母
+    for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
+    // 年份2位 (随机 1950-2004)
+    out += String(util.randInt(50, 104)).slice(-2);
+    // 月份1字母
+    out += months.charAt(util.randInt(0, 11));
+    // 日期2位
+    var day = util.randInt(1, 31);
+    out += util.pad(day, 2);
+    // 出生地4字符 (字母+数字)
+    for (var i = 0; i < 4; i++) out += (i % 2 === 0 ? s : n).charAt(util.randInt(0, i % 2 === 0 ? 25 : 9));
+    // 校验字符
+    out += s.charAt(util.randInt(0, 25));
     return out;
   }
   FakeID.registerCountry('italy', {

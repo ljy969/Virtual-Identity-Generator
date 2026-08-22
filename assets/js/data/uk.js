@@ -15,7 +15,9 @@
   var jobs = util.occupationPool('en');
   var outward = ['SW1A','EH1','M1','B1','G2','CF10','BS1','LE1','LS1','NE1','NW1','SE1','EC1','WC1','RG1','CB1'];
   function nino() {
-    var L = 'ABCEGHJKLMNPRSTWXYZ';
+    // NINO 格式：两字母 + 6数字 + 后缀字母(A-D)
+    // 前两字母排除 D, F, I, Q, U, V (官方规范)
+    var L = 'ABCEGHJKLMNPRSTWXYZ'; // 含 O，排除 DFIQUV
     var a = L.charAt(util.randInt(0, L.length - 1));
     var b = L.charAt(util.randInt(0, L.length - 1));
     var last = util.pick(['A','B','C','D']);

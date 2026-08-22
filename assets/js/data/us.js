@@ -63,8 +63,12 @@
   {name:'District of Columbia',abbr:'DC',zip:'20',cities:['Washington']}
 ];;
   function ssn() {
-    var a = util.randInt(1, 899);
-    if (a === 666) a = 665;
+    // SSN 区号：排除 000, 666, 900-999
+    // 使用拒绝采样保证均匀分布
+    var a;
+    do {
+      a = util.randInt(1, 999);
+    } while (a === 666 || a >= 900);
     return util.pad(a, 3) + '-' + util.pad(util.randInt(1, 99), 2) + '-' + util.pad(util.randInt(1, 9999), 4);
   }
   FakeID.registerCountry('us', {

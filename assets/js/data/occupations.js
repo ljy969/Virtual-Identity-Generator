@@ -216,7 +216,6 @@
     "质检员",
     "仓库工人",
     "包装工",
-    "叉车司机",
     "生产主管",
     "厂长",
     "卡车司机",
@@ -233,13 +232,12 @@
     "船长",
     "水手",
     "码头工人",
-    "快递员",
     "调度员",
     "物流经理",
     "车队经理",
     "厨师",
     "副厨",
-    " pastry 师",
+    "糕点师",
     "面包师",
     "咖啡师",
     "服务员",
@@ -679,7 +677,6 @@
     "Consultant",
     "Freelancer",
     "Salesperson",
-    "Cashier",
     "Call Center Agent",
     "Telemarketer",
     "Data Entry Clerk",
@@ -2055,7 +2052,13 @@
   ]
 };
   FakeID.util.OCCUPATIONS = OCCUPATIONS;
+  /* 按语言/地区取得职业池 - 返回副本防止外部篡改 */
   FakeID.util.occupationPool = function (locale) {
-    return OCCUPATIONS[locale] || OCCUPATIONS['en'];
+    var pool = OCCUPATIONS[locale] || OCCUPATIONS['en'];
+    return pool.slice(); // 返回副本
+  };
+  FakeID.util.occupationPool = function (locale) {
+    var pool = OCCUPATIONS[locale] || OCCUPATIONS['en'];
+    return pool.slice(); // 返回副本防止外部篡改
   };
 })(window);

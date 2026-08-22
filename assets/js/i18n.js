@@ -191,11 +191,23 @@
   // 地区子标签（语言标签中 “-” 之后的部分，如 en-US 的 US）到国家代码的映射
   var REGION_TO_COUNTRY = {
     CN: 'china', US: 'us', GB: 'uk', CA: 'canada', DE: 'germany',
-    JP: 'japan', FR: 'france', IT: 'italy', ES: 'spain'
+    JP: 'japan', FR: 'france', IT: 'italy', ES: 'spain',
+    AU: 'canada', NZ: 'canada', ZA: 'canada', IE: 'uk',
+    CH: 'germany', AT: 'germany', BE: 'france', LU: 'france',
+    MX: 'spain', AR: 'spain', CO: 'spain', PE: 'spain', CL: 'spain',
+    BR: 'canada', PT: 'spain', TW: 'china', HK: 'china', MO: 'china',
+    SG: 'canada', MY: 'canada', TH: 'canada', VN: 'canada', ID: 'canada',
+    KR: 'canada', PH: 'canada', IN: 'canada'
   };
   // 仅有主语言、无地区子标签时的回退（如 zh → china，en → us）
   var LANG_TO_COUNTRY = {
-    zh: 'china', ja: 'japan', de: 'germany', fr: 'france', it: 'italy', es: 'spain', en: 'us'
+    zh: 'china', ja: 'japan', de: 'germany', fr: 'france', it: 'italy', es: 'spain', en: 'us',
+    pt: 'canada', ko: 'canada', ru: 'canada', ar: 'canada', hi: 'canada',
+    nl: 'canada', pl: 'canada', tr: 'canada', sv: 'canada', da: 'canada',
+    no: 'canada', fi: 'canada', cs: 'canada', hu: 'canada', ro: 'canada',
+    sk: 'canada', bg: 'canada', hr: 'canada', sr: 'canada', sl: 'canada',
+    et: 'canada', lv: 'canada', lt: 'canada', el: 'canada', he: 'canada',
+    th: 'canada', vi: 'canada', id: 'canada', ms: 'canada', tl: 'canada'
   };
   function detectSystemCountry(codes) {
     codes = codes || (FakeID.listCountries ? FakeID.listCountries().map(function (c) { return c.code; }) : []);
@@ -286,7 +298,7 @@
     for (var j = 0; j < ph.length; j++) ph[j].setAttribute('placeholder', i18n.t(ph[j].getAttribute('data-i18n-ph')));
     var ti = root.querySelectorAll('[data-i18n-title]');
     for (var k = 0; k < ti.length; k++) ti[k].setAttribute('title', i18n.t(ti[k].getAttribute('data-i18n-title')));
-    var htmlEls = root.querySelectorAll('[data-i18n-html]');
-    for (var h = 0; h < htmlEls.length; h++) htmlEls[h].innerHTML = i18n.t(htmlEls[h].getAttribute('data-i18n-html'));
+    // data-i18n-html removed for security (XSS prevention).
+    // Disclaimer uses data-i18n with textContent; HTML entities are pre-encoded in dict.
   };
 })(window);

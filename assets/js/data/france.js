@@ -36,7 +36,15 @@
     var commune = util.pad(util.randInt(1, 999), 3);
     var order = util.pad(util.randInt(1, 999), 3);
     var body = '' + sex + yy + mm + dept + commune + order;
-    var key = 97 - (parseInt(body, 10) % 97);
+    // 使用字符串逐位取模避免大整数精度问题
+    var mod97 = function (str) {
+      var rem = 0;
+      for (var i = 0; i < str.length; i++) {
+        rem = (rem * 10 + parseInt(str.charAt(i), 10)) % 97;
+      }
+      return rem;
+    };
+    var key = 97 - mod97(body);
     if (key === 97) key = 99;
     return sex + yy + '-' + mm + '-' + dept + commune + '-' + order + '-' + util.pad(key, 2);
   }

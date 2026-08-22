@@ -26,8 +26,13 @@
   var companies = ['Deutsche Tech GmbH','Rhein Handel AG','Berlin Logistik','Hansa Media','Bayerische Systems','Nord Software','Suder Logistics'];
   var jobs = util.occupationPool('de');
   function steuerId() {
-    var d = util.pad(util.randInt(0, 99999999999), 11);
-    return d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,8) + ' ' + d.slice(8,11);
+    // 德国 Steuer-ID (11位，含校验位) - 简化演示实现
+    // 真实算法：ISO 7064 Mod 11,10，结构复杂
+    // 此处生成格式正确但校验位为演示用随机值
+    var d = util.pad(util.randInt(0, 9999999999), 10); // 前10位
+    var check = util.randInt(0, 9); // 简化：随机校验位
+    var full = d + check;
+    return full.slice(0, 2) + ' ' + full.slice(2, 5) + ' ' + full.slice(5, 8) + ' ' + full.slice(8, 11);
   }
   FakeID.registerCountry('germany', {
     label: '德国',

@@ -29,7 +29,7 @@
   var streets = ['Calle Mayor','Avenida de la Constitucion','Calle de Alcala','Paseo de la Castellana','Calle del Sol','Gran Via','Calle de San Miguel','Avenida del Parque','Calle Lopez','Calle Real'];
   var companies = ['Iberia Tech SL','Castellana Comercio','Sol Logistics','Hispania Media','Cervantes Software','Mediterraneo Systems'];
   var jobs = util.occupationPool('es');
-  var dniLetters = 'TRWAGMYFPDXBNJZSQVHLCKE'.split('');
+  var dniLetters = 'TRWAGMYFPDXBNJZSQVHLCKE'.split(''); // 官方 DNI 校验字母表 (mod 23)
   function dni() {
     var n = util.randInt(10000000, 99999999);
     return n + dniLetters[n % 23];

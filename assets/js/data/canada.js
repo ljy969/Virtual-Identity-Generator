@@ -24,7 +24,11 @@
   var jobs = util.occupationPool('en');
   var postalLetters = 'ABCEGHJKLMNPRSTVWXYZ'.split('');
   function sin() {
-    return util.pad(util.randInt(0, 999), 3) + '-' + util.pad(util.randInt(0, 999), 3) + '-' + util.pad(util.randInt(0, 999), 3);
+    // 加拿大 SIN 使用 Luhn 算法校验 (9位数字，最后一位为校验位)
+    var body = util.pad(util.randInt(0, 99999999), 8); // 8位本体
+    var check = util.luhnCheckDigit(body);
+    var full = body + check;
+    return full.slice(0, 3) + '-' + full.slice(3, 6) + '-' + full.slice(6);
   }
   function postal() {
     return util.pick(postalLetters) + util.randInt(0, 9) + util.pick(postalLetters) + ' ' + util.randInt(0, 9) + util.pick(postalLetters) + util.randInt(0, 9);
@@ -38,7 +42,7 @@
         regions: regions,
         surnames: surnames, givenMale: givenMale, givenFemale: givenFemale,
         domains: util.emailPool('en'),
-        phonePrefix: ['416','514','604','403','613','902','204','905','780','604','418'],
+        phonePrefix: ['416','514','604','403','613','902','204','905','780','418'],
         phoneLen: 7,
         idLabel: 'sin',
         idFn: function () { return sin(); },

@@ -261,8 +261,9 @@
   ]
   };
   FakeID.util.MAILDOMAINS = MAILDOMAINS;
-  /* 按语言/地区取得邮箱域名池（缺省回退到 en） */
+  /* 按语言/地区取得邮箱域名池（缺省回退到 en） - 返回副本防止外部篡改 */
   FakeID.util.emailPool = function (locale) {
-    return MAILDOMAINS[locale] || MAILDOMAINS['en'];
+    var pool = MAILDOMAINS[locale] || MAILDOMAINS['en'];
+    return pool.slice(); // 返回副本
   };
 })(window);

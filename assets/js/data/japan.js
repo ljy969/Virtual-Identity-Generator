@@ -56,7 +56,19 @@
 ];;
   var companies = ['Sakura Corp','Tokyo Tech KK','Nihon Systems','Yamato Logistics','Mizuho Digital','Asahi Media','Kobe Trading','Sora Networks'];
   var jobs = util.occupationPool('ja');
-  function myNumber() { return util.pad(util.randInt(0, 999999999999), 12); }
+  function myNumber() {
+    // 日本个人番号 (My Number) 12位，第12位为校验位
+    // 校验算法：从右往左第2位开始，权重 2,3,4,5,6,7,2,3,4,5,6
+    // 校验位 = (11 - (加权和 % 11)) % 10
+    var body = util.pad(util.randInt(0, 99999999999), 11); // 前11位
+    var weights = [6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2]; // 从左往右对应 body[0]..body[10]
+    var sum = 0;
+    for (var i = 0; i < 11; i++) {
+      sum += parseInt(body.charAt(i), 10) * weights[i];
+    }
+    var check = (11 - (sum % 11)) % 10;
+    return body + check;
+  }
   FakeID.registerCountry('japan', {
     label: '日本',
     locale: 'ja',

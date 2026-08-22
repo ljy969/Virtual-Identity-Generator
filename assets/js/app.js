@@ -384,6 +384,8 @@
   }
   function csvCell(s) {
     s = String(s).replace(/\r?\n/g, ' ');
+    // 防御 CSV 公式注入：以 = + - @ 开头的字符串前缀单引号
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
     if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
@@ -398,12 +400,18 @@
   }
 
   var flashTimer = null;
+  var flashId = 0;
   function flash(msg) {
     if (!statusEl) return;
+    var thisId = ++flashId;
     statusEl.textContent = msg;
     statusEl.classList.add('show');
     if (flashTimer) clearTimeout(flashTimer);
-    flashTimer = setTimeout(function () { statusEl.classList.remove('show'); }, 1800);
+    flashTimer = setTimeout(function () {
+      if (thisId === flashId) { // 只有最新的 flash 才清除状态
+        statusEl.classList.remove('show');
+      }
+    }, 1800);
   }
 
   if (document.readyState === 'loading') {

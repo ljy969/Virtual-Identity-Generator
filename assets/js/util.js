@@ -1,33 +1,122 @@
 /* util.js — 通用工具与注册表（多文件生成器的基础，无外部依赖）
  * 扩展方式：其他国家/地区的数据文件都依赖这里的工具函数。 */
-(function (global) {
+/**
+ * @typedef {Object} FakeIDUtil
+ * @property {function(number, number): number} randInt
+ * @property {function(Array): *} pick
+ * @property {function(number): boolean} chance
+ * @property {function(string|number, number): string} pad
+ * @property {function(number, number): Date} randomDate
+ * @property {function(Date, string=): string} formatDate
+ * @property {function(Date): number} ageFrom
+ * @property {function(string): string} deaccent
+ * @property {function(number): Date} birthDateForAge
+ * @property {function(Object): Date} birthDate
+ * @property {function(string, number): number[]} bodyMetrics
+ * @property {function(number, Object): string} occupationForAge
+ * @property {function(number, Object): (string|null)} companyForAge
+ * @property {function(number=): string} password
+ * @property {function(number=): string} randomHandle
+ * @property {function(string): string} chinaIDChecksum
+ * @property {function(string, Date): string} makeChinaID
+ * @property {function(Object, Array<string>): string} emailDomain
+ * @property {function(Object, Object): Array<Array<string>>} buildWestern
+ * @property {function(string): Array<string>} emailPool
+ * @property {function(string): Array<string>} occupationPool
+ * @property {Object<string, Object>} cardTypes
+ * @property {function(): string[]} cardTypeKeys
+ * @property {function(string): number} luhnCheckDigit
+ * @property {function(Object): Object} creditCard
+ * @property {function(string, string): string} formatCardNumber
+ * @property {function(Object): Array<Array<string>>} creditCardFields
+ * @property {function(number, Object): Array<Array<string>>} creditCardForAge
+ * @property {function(Array, number, string=): string} pickSome
+ * @property {function(Object, Object): Array<Array<string>>} profileFields
+ * @property {function(string): string} timezoneFor
+ * @property {function(Object): string} websiteFor
+ * @property {function(string, Object): void} registerCountry
+ * @property {Object<string, Object>} countries
+ * @property {Object} MAILDOMAINS
+ * @property {Object} OCCUPATIONS
+ */
+
+/**
+ * @type {FakeIDUtil}
+ */
+var util = (function (global) {
   'use strict';
   var FakeID = (global.FakeID = global.FakeID || {});
   var util = (FakeID.util = {});
 
+  /**
+   * 生成 [min, max] 之间的随机整数（含边界）
+   * @param {number} min - 最小值
+   * @param {number} max - 最大值
+   * @returns {number} 随机整数
+   */
   util.randInt = function (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
+
+  /**
+   * 从数组中随机选取一个元素
+   * @template T
+   * @param {T[]} arr - 数组
+   * @returns {T} 随机元素
+   */
   util.pick = function (arr) {
     return arr[Math.floor(Math.random() * arr.length)];
   };
+
+  /**
+   * 按概率返回 true
+   * @param {number} p - 概率 (0-1)
+   * @returns {boolean}
+   */
   util.chance = function (p) {
     return Math.random() < p;
   };
+
+  /**
+   * 数字/字符串左侧补零
+   * @param {string|number} n - 数值
+   * @param {number} len - 目标长度
+   * @returns {string} 补零后的字符串
+   */
   util.pad = function (n, len) {
     n = String(n);
     while (n.length < len) n = '0' + n;
     return n;
   };
+
+  /**
+   * 在 [startYear, endYear] 范围内生成随机日期
+   * @param {number} startYear - 起始年份
+   * @param {number} endYear - 结束年份
+   * @returns {Date} 随机日期
+   */
   util.randomDate = function (startYear, endYear) {
     var start = new Date(startYear, 0, 1).getTime();
     var end = new Date(endYear, 11, 31).getTime();
     return new Date(start + Math.random() * (end - start));
   };
+
+  /**
+   * 格式化日期为 YYYY-MM-DD 或自定义分隔符
+   * @param {Date} d - 日期对象
+   * @param {string=} sep - 分隔符，默认 '-'
+   * @returns {string} 格式化日期字符串
+   */
   util.formatDate = function (d, sep) {
     if (sep === undefined || sep === null) sep = '-';
     return d.getFullYear() + sep + util.pad(d.getMonth() + 1, 2) + sep + util.pad(d.getDate(), 2);
   };
+
+  /**
+   * 计算出生日期到现在的年龄
+   * @param {Date} d - 出生日期
+   * @returns {number} 年龄
+   */
   util.ageFrom = function (d) {
     var now = new Date();
     var age = now.getFullYear() - d.getFullYear();
@@ -35,23 +124,53 @@
     if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
     return age;
   };
+
+  /**
+   * 移除字符串中的变音符号 (NFD 归一化后移除组合字符)
+   * @param {string} s - 输入字符串
+   * @returns {string} 移除变音符后的字符串
+   */
   util.deaccent = function (s) {
     if (!s) return '';
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   };
-  /* 按目标年龄生成出生日期，保证 ageFrom 精确等于目标年龄 */
+  /**
+   * 按目标年龄生成出生日期，保证 ageFrom 精确等于目标年龄
+   * @param {number} age - 目标年龄
+   * @returns {Date} 出生日期
+   */
   util.birthDateForAge = function (age) {
     age = parseInt(age, 10);
     if (isNaN(age) || age < 0) age = 0;
     if (age > 120) age = 120;
     var now = new Date();
+    var targetYear = now.getFullYear() - age;
     var maxMonth = now.getMonth();                       // 0-11，确保今年生日已过
-    var month = util.randInt(0, maxMonth);
-    var maxDay = (month < maxMonth) ? 28 : now.getDate();
-    var day = util.randInt(1, Math.max(1, maxDay));
-    return new Date(now.getFullYear() - age, month, day);
+    var month, day, d;
+    // 使用拒绝采样：生成日期后验证 ageFrom 结果，不符则重试
+    // 这样可自动处理闰年 2/29 等边界情况
+    var maxAttempts = 10;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      month = util.randInt(0, maxMonth);
+      var maxDay = (month < maxMonth) ? 28 : now.getDate();
+      day = util.randInt(1, Math.max(1, maxDay));
+      d = new Date(targetYear, month, day);
+      // 验证生成的日期确实产生目标年龄（处理闰年回滚等情况）
+      if (util.ageFrom(d) === age) return d;
+    }
+    // 极端情况下回退：使用当月1日
+    return new Date(targetYear, 0, 1);
   };
-  /* 根据 opts.ageMode 决定出生日期：random / exact / range */
+
+  /**
+   * 根据 opts.ageMode 决定出生日期：random / exact / range
+   * @param {Object} opts - 选项
+   * @param {string} [opts.ageMode='random'] - 年龄模式
+   * @param {number} [opts.ageExact] - 精确年龄
+   * @param {number} [opts.ageMin] - 最小年龄
+   * @param {number} [opts.ageMax] - 最大年龄
+   * @returns {Date} 出生日期
+   */
   util.birthDate = function (opts) {
     opts = opts || {};
     if (opts.ageMode === 'exact' && opts.ageExact != null && opts.ageExact !== '') {
@@ -173,21 +292,29 @@
   util.randomHandle = function (len) {
     len = len || 8;
     var letters = 'abcdefghijklmnopqrstuvwxyz';
-    var out, guard = 0;
-    do {
-      out = '';
-      for (var i = 0; i < len; i++) out += letters.charAt(util.randInt(0, 25));
-      guard++;
-    } while (out.indexOf('user') === 0 && guard < 20);
+    var out = '';
+    // 确定性防 "user" 前缀：首字母强制非 'u'
+    var firstChar = letters.charAt(util.randInt(1, 25)); // 跳过 'a'(0), 但 'u' 是 20
+    // 更简单：首字母从 'b'..'z' 中选 (排除 'a' 和 'u')
+    var safeFirst = 'bcdfghjklmnpqrstvwxyz'; // 20 个字母，排除 a, u, e, i, o (元音也排除更安全)
+    firstChar = safeFirst.charAt(util.randInt(0, safeFirst.length - 1));
+    out += firstChar;
+    for (var i = 1; i < len; i++) {
+      out += letters.charAt(util.randInt(0, 25));
+    }
     return out;
   };
 
   /* 中国大陆身份证校验码（GB 11643-1999, mod 11-2） */
   util.chinaIDChecksum = function (body17) {
+    // 权重因子：从右往左（身份证第17位到第1位）对应 [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2]
+    // 即 body17[16] * 7, body17[15] * 9, ..., body17[0] * 2
     var w = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
     var c = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
     var sum = 0;
-    for (var i = 0; i < 17; i++) sum += parseInt(body17.charAt(i), 10) * w[i];
+    for (var i = 0; i < 17; i++) {
+      sum += parseInt(body17.charAt(16 - i), 10) * w[i];
+    }
     return c[sum % 11];
   };
   util.makeChinaID = function (region6, date) {
@@ -244,6 +371,8 @@
     var last = util.pick(cfg.surnames);
     var bdate = util.birthDate(opts);
     var handle = util.deaccent(first + '.' + last).toLowerCase().replace(/[^a-z.]/g, '');
+    // 非拉丁字母姓名（日文等）deaccent 后可能为空，回退到随机 handle
+    if (!handle) handle = util.randomHandle(8);
     var num = util.randInt(10, 999);
     var username = handle.replace(/\./g, '') + num;
     var email = handle + num + '@' + util.emailDomain(opts, cfg.domains);
@@ -346,9 +475,11 @@
     var body = String(prefix);
     while (body.length < t.len - 1) body += String(util.randInt(0, 9));
     var number = body + util.luhnCheckDigit(body);
-    var expY = util.randInt(25, 34);                       // 2025-2034
+    var now = new Date();
+    var currentYear = now.getFullYear();
+    var expY = util.randInt(currentYear + 1, currentYear + 10); // 明年~10年后
     var expM = util.pad(util.randInt(1, 12), 2);
-    var expiry = expM + '/' + expY;
+    var expiry = expM + '/' + String(expY).slice(-2);
     var cvv = util.pad(util.randInt(0, Math.pow(10, t.cvvLen) - 1), t.cvvLen);
     return { key: key, type: t.label, number: number, expiry: expiry, cvv: cvv };
   };
@@ -378,7 +509,8 @@
     opts = opts || {};
     age = parseInt(age, 10);
     if (isNaN(age)) age = 0;
-    if (age < 18) return [];
+    var adultAge = opts.adultAge || 18;
+    if (age < adultAge) return [];
     return util.creditCardFields(opts);
   };
 
@@ -507,19 +639,26 @@
       var zhArr = zhPool[poolName] || [];
       var enArr = enPool[poolName] || [];
       
-      // 选择基础数组：如果 nativeLang 是 zh 用 zhArr，是 en 用 enArr，否则用 zhArr 作为基础
+      // 使用两个数组的最小长度作为边界，防止越界
+      var maxLen = Math.min(zhArr.length, enArr.length);
+      if (maxLen === 0) {
+        // 回退：任一数组有数据则用其长度
+        maxLen = Math.max(zhArr.length, enArr.length);
+      }
+      if (maxLen === 0) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
+      
+      // 选择基础数组：优先使用 nativeLang 对应的数组
       var baseArr = (nativeLang === 'zh') ? zhArr : enArr;
       if (!baseArr.length) baseArr = (nativeLang === 'zh') ? enArr : zhArr;
-      if (!baseArr.length) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
       
-      var idx = util.randInt(0, baseArr.length - 1);
+      var idx = util.randInt(0, maxLen - 1);
       var baseEntry = baseArr[idx];
       
-      // 提取中文名、英文名、原生名
-      var zhName = (zhArr[idx] && zhArr[idx][0]) || baseEntry[0];
-      var enName = (enArr[idx] && enArr[idx][0]) || baseEntry[0];
-      var nativeName = baseEntry[2] || baseEntry[0]; // 第三个元素是原生名
-      var countryName = baseEntry[1] || ''; // 第二个元素是国家名
+      // 安全获取各语言值，防止越界
+      var zhName = (zhArr[idx] && zhArr[idx][0]) || baseEntry[0] || '';
+      var enName = (enArr[idx] && enArr[idx][0]) || baseEntry[0] || '';
+      var nativeName = baseEntry[2] || baseEntry[0] || '';
+      var countryName = baseEntry[1] || '';
       
       var result = {};
       result.zh = [zhName, countryName];
@@ -677,11 +816,13 @@
     return Array.isArray(tz) ? util.pick(tz) : tz;
   };
 
-  /* 生成“网站”字段：基于用户名 handle 拼一个示例个人站点 */
+  /* 生成“网站”字段：基于用户名 handle 拼一个示例个人站点
+    * 使用 RFC 2606/6761 保留 TLD (.test, .example, .invalid, .localhost)
+    * 避免意外生成真实可注册域名 */
   util.websiteFor = function (ctx) {
     ctx = ctx || {};
     var handle = ctx.handle || util.randomHandle(8);
-    var tld = util.pick(['com', 'net', 'io', 'org', 'me', 'co']);
+    var tld = util.pick(['test', 'example', 'invalid', 'localhost']);
     return 'https://www.' + String(handle).toLowerCase() + '.' + tld;
   };
 
