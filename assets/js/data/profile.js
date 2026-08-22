@@ -2120,16 +2120,95 @@
 };
 
   // 国家代码 -> 时区（用于“时区”字段；未命中时回退到 UTC）
+  // 多数国家仅单一时区；跨时区国家（美国、加拿大、法国、西班牙等）列出全部 IANA 时区标识符
   var TIMEZONES = {
     china: 'Asia/Shanghai',
-    us: 'America/New_York',
+    us: [
+      'America/New_York',       // Eastern Time
+      'America/Detroit',        // Eastern Time - Michigan
+      'America/Kentucky/Louisville', // Eastern Time - Kentucky (Louisville)
+      'America/Kentucky/Monticello', // Eastern Time - Kentucky (Monticello)
+      'America/Indiana/Indianapolis', // Eastern Time - Indiana
+      'America/Indiana/Vincennes',    // Eastern Time - Indiana (Vincennes)
+      'America/Indiana/Winamac',      // Eastern Time - Indiana (Winamac)
+      'America/Indiana/Marengo',      // Eastern Time - Indiana (Marengo)
+      'America/Indiana/Petersburg',   // Eastern Time - Indiana (Petersburg)
+      'America/Indiana/Vevay',        // Eastern Time - Indiana (Vevay)
+      'America/Chicago',        // Central Time
+      'America/Indiana/Tell_City',    // Central Time - Indiana (Tell City)
+      'America/Indiana/Knox',         // Central Time - Indiana (Knox)
+      'America/Menominee',      // Central Time - Michigan (Menominee)
+      'America/North_Dakota/Center',  // Central Time - North Dakota
+      'America/North_Dakota/New_Salem', // Central Time - North Dakota (New Salem)
+      'America/North_Dakota/Beulah',   // Central Time - North Dakota (Beulah)
+      'America/Denver',         // Mountain Time
+      'America/Boise',          // Mountain Time - Idaho
+      'America/Phoenix',        // Mountain Standard Time - Arizona (no DST)
+      'America/Los_Angeles',    // Pacific Time
+      'America/Anchorage',      // Alaska Time
+      'America/Juneau',         // Alaska Time - Juneau
+      'America/Sitka',          // Alaska Time - Sitka
+      'America/Metlakatla',     // Alaska Time - Metlakatla
+      'America/Yakutat',        // Alaska Time - Yakutat
+      'America/Nome',           // Alaska Time - Nome
+      'America/Adak',           // Hawaii-Aleutian Time - Adak
+      'Pacific/Honolulu'        // Hawaii Time (no DST)
+    ],
     japan: 'Asia/Tokyo',
     uk: 'Europe/London',
     germany: 'Europe/Berlin',
-    france: 'Europe/Paris',
+    france: [
+      'Europe/Paris',           // Metropolitan France
+      'America/Guadeloupe',     // Guadeloupe
+      'America/Martinique',     // Martinique
+      'America/Cayenne',        // French Guiana
+      'Indian/Reunion',         // Réunion
+      'Indian/Mayotte',         // Mayotte
+      'Indian/Kerguelen',       // Kerguelen Islands
+      'Indian/Comoro',          // Comoro Islands (Scattered Islands)
+      'Indian/Mahe',            // Scattered Islands (Europa, Juan de Nova, etc.)
+      'Pacific/Tahiti',         // French Polynesia - Tahiti
+      'Pacific/Marquesas',      // French Polynesia - Marquesas
+      'Pacific/Gambier',        // French Polynesia - Gambier
+      'Pacific/Noumea',         // New Caledonia
+      'Pacific/Wallis'          // Wallis and Futuna
+    ],
     italy: 'Europe/Rome',
-    spain: 'Europe/Madrid',
-    canada: 'America/Toronto'
+    spain: [
+      'Europe/Madrid',          // Mainland Spain, Balearic Islands, Ceuta, Melilla
+      'Africa/Ceuta',           // Ceuta, Melilla (same as Madrid)
+      'Atlantic/Canary'         // Canary Islands
+    ],
+    canada: [
+      'America/St_Johns',       // Newfoundland Time (NL)
+      'America/Halifax',        // Atlantic Time (NS, PE)
+      'America/Glace_Bay',      // Atlantic Time - Nova Scotia (Cape Breton)
+      'America/Moncton',        // Atlantic Time - New Brunswick
+      'America/Goose_Bay',      // Atlantic Time - Labrador
+      'America/Blanc-Sablon',   // Atlantic Standard Time - Quebec (Blanc-Sablon, no DST)
+      'America/Toronto',        // Eastern Time (ON, QC - most)
+      'America/Nipigon',        // Eastern Time - Ontario (Nipigon)
+      'America/Thunder_Bay',    // Eastern Time - Ontario (Thunder Bay)
+      'America/Iqaluit',        // Eastern Time - Nunavut (Iqaluit)
+      'America/Pangnirtung',    // Eastern Time - Nunavut (Pangnirtung)
+      'America/Atikokan',       // Eastern Standard Time - Ontario (Atikokan, no DST)
+      'America/Winnipeg',       // Central Time (MB, SK - most)
+      'America/Rainy_River',    // Central Time - Ontario (Rainy River)
+      'America/Resolute',       // Central Time - Nunavut (Resolute)
+      'America/Rankin_Inlet',   // Central Time - Nunavut (Rankin Inlet)
+      'America/Regina',         // Central Standard Time - Saskatchewan (no DST)
+      'America/Swift_Current',  // Central Standard Time - Saskatchewan (Swift Current, no DST)
+      'America/Edmonton',       // Mountain Time (AB, NT, BC - east)
+      'America/Cambridge_Bay',  // Mountain Time - Nunavut (Cambridge Bay)
+      'America/Yellowknife',    // Mountain Time - Northwest Territories
+      'America/Inuvik',         // Mountain Time - Northwest Territories (Inuvik)
+      'America/Creston',        // Mountain Standard Time - BC (Creston, no DST)
+      'America/Dawson_Creek',   // Mountain Standard Time - BC (Dawson Creek, no DST)
+      'America/Fort_Nelson',    // Mountain Standard Time - BC (Fort Nelson, no DST)
+      'America/Vancouver',      // Pacific Time (BC - most, YT)
+      'America/Whitehorse',     // Pacific Time - Yukon
+      'America/Dawson'          // Pacific Time - Yukon (Dawson)
+    ]
   };
 
   FakeID.profile = { pools: PROFILE, timezones: TIMEZONES };

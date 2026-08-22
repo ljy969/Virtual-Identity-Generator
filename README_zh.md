@@ -178,9 +178,9 @@ npx serve .
 
 除上述核心字段外，**扩展档案**由 `util.profileFields` 追加，包括：学历、专业、学校（及学校所在国）、公司规模、收入等级、技能、兴趣、人格特征、宠物、喜好食物、旅行风格、外貌（发色/瞳色/肤色）、血型、体型、**安全问题与安全答案**、**在线签名**、时区与网站。
 
+> **多时区支持**：跨越多个 IANA 时区的国家（美国、加拿大、法国、西班牙）在每次生成时随机选择一个地理上贴合的时区（如：美国 → `America/New_York`、`America/Chicago`、`America/Denver`、`America/Los_Angeles`、`America/Anchorage`、`Pacific/Honolulu`；加拿大 → 29 个时区，含 `America/St_Johns`、`America/Toronto`、`America/Vancouver`；法国 → 大陆法兰西 + 13 个海外领地；西班牙 → `Europe/Madrid` + `Atlantic/Canary`）。单时区国家（中国、日本、英国、德国、意大利）返回其唯一的标准时区（`Asia/Shanghai`、`Asia/Tokyo`、`Europe/London`、`Europe/Berlin`、`Europe/Rome`）。
+
 > **国家专属安全问答与在线签名** — 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名，存储于 `PROFILE.securityQAByCountry` 和 `PROFILE.signaturesByCountry`（见 `assets/js/data/profile.js`）。例如，**日本** 身份将获得如 _"母の旧姓は何ですか？"_ → _"田中"_ 的问答，而 **美国** 身份则获得 _"What is your mother's maiden name?"_ → _"Smith"_。每组问答均提供中、英双语版本供界面显示；对于母语非中、非英的国家（日本、德国、法国、意大利、西班牙），还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。此前的通用 `securityQA` 池（8 条）仍作为兜底回退，供未来新增国家使用。
->
-> **国家专属在线签名** — 同样，`PROFILE.signaturesByCountry` 提供每个国家 15 条文化贴合的在线签名（升级自 8 条通用签名），并为非中、非英国家（如日本、德国、法国、意大利、西班牙）保留母语版本。
 
 ---
 

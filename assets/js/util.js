@@ -669,10 +669,12 @@
     return out;
   };
 
-  /* 按国家代码返回时区，未命中回退 UTC */
+  /* 按国家代码返回时区，未命中回退 UTC
+   * 若该国家有多个时区（数组），随机返回其中一个 */
   util.timezoneFor = function (code) {
     var TZ = (FakeID.profile && FakeID.profile.timezones) || {};
-    return TZ[code] || 'UTC';
+    var tz = TZ[code] || 'UTC';
+    return Array.isArray(tz) ? util.pick(tz) : tz;
   };
 
   /* 生成“网站”字段：基于用户名 handle 拼一个示例个人站点 */
