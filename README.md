@@ -22,6 +22,7 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Browser Support](#browser-support)
+- [Screenshots](#screenshots)
 - [Supported Countries](#supported-countries)
 - [Generated Profile Fields](#generated-profile-fields)
 - [Realism Engine](#realism-engine)
@@ -41,7 +42,6 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - [API Reference](#api-reference)
 - [Privacy & Security](#privacy--security)
 - [Known Limitations](#known-limitations)
-- [Star History](#star-history)
 
 ---
 
@@ -90,6 +90,20 @@ npx serve .
 | Persistence | `localStorage` (gracefully degrades if blocked) |
 
 Tested conceptually on evergreen desktop and mobile browsers.
+
+---
+
+## Screenshots
+
+> The interface is fully bilingual (中文 / English). Each pair below shows the same screen in both languages, across light and dark themes.
+
+| Feature | 中文 | English |
+| --- | --- | --- |
+| **Interface language**<br>界面语言 | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> |
+| **Light mode**<br>浅色模式 | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> |
+| **Dark mode**<br>深色模式 | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> |
+| **Country selection**<br>国家选择 | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | <img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> |
+| **Generation example**<br>生成示例 | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> |
 
 ---
 

@@ -22,6 +22,7 @@
 - [功能特性](#功能特性)
 - [快速开始](#快速开始)
 - [浏览器支持](#浏览器支持)
+- [截图展示](#截图展示)
 - [支持的国家/地区](#支持的国家地区)
 - [生成的身份字段](#生成的身份字段)
 - [真实性引擎](#真实性引擎)
@@ -41,7 +42,6 @@
 - [API 参考](#api-参考)
 - [隐私与安全](#隐私与安全)
 - [已知限制](#已知限制)
-- [Star 历史](#star-历史)
 
 ---
 
@@ -90,6 +90,20 @@ npx serve .
 | 偏好持久化 | `localStorage`（被禁用时优雅降级） |
 
 已在主流桌面与移动浏览器（常青版本）上做概念性验证。
+
+---
+
+## 截图展示
+
+> 界面完全中英双语（中文 / English）。以下每组截图展示同一界面在两种语言、浅色与深色主题下的效果。
+
+| 功能 | 中文 | English |
+| --- | --- | --- |
+| **界面语言**<br>Interface language | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> |
+| **浅色模式**<br>Light mode | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> |
+| **深色模式**<br>Dark mode | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> |
+| **国家选择**<br>Country selection | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | <img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> |
+| **生成示例**<br>Generation example | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> |
 
 ---
 
