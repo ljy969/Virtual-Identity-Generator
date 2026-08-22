@@ -95,15 +95,13 @@ npx serve .
 
 ## 截图展示
 
-> 界面完全中英双语（中文 / English）。以下每组截图展示同一界面在两种语言、浅色与深色主题下的效果。
-
-| 功能 | 中文 | English |
-| --- | --- | --- |
-| **界面语言**<br>Interface language | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> | <img src="screenshots/language-English.PNG" width="300" alt="Interface language (English)"> |
-| **浅色模式**<br>Light mode | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | <img src="screenshots/light%20mode-English.PNG" width="300" alt="Light mode (English)"> |
-| **深色模式**<br>Dark mode | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> | <img src="screenshots/dark%20mode-English.PNG" width="300" alt="Dark mode (English)"> |
-| **国家选择**<br>Country selection | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | <img src="screenshots/Country%20Choice-English.png" width="300" alt="Country selection (English)"> |
-| **生成示例**<br>Generation example | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | <img src="screenshots/Generate%20Example-English.PNG" width="300" alt="Generation example (English)"> |
+| 功能 | 中文 | 
+| --- | --- | 
+| **界面语言** | <img src="screenshots/language-Chinese.PNG" width="300" alt="界面语言（中文）"> |
+| **浅色模式** | <img src="screenshots/light%20mode-Chinese.PNG" width="300" alt="浅色模式（中文）"> | 
+| **深色模式** | <img src="screenshots/dark%20mode-Chinese.PNG" width="300" alt="深色模式（中文）"> |
+| **国家选择** | <img src="screenshots/Country%20Choice-Chinese.png" width="300" alt="国家选择（中文）"> | 
+| **生成示例** | <img src="screenshots/Generate%20Example-Chinese.PNG" width="300" alt="生成示例（中文）"> | 
 
 ---
 
