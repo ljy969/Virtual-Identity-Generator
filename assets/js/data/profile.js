@@ -167,7 +167,7 @@
     },
     en: {
       schools: [
-        ['Harvard University','United States','Harvard University'],['Stanford University','United States','Stanford University'],['MIT','United States','Massachusetts Institute of Technology'],
+        ['Harvard University','United States','Harvard University'],['Stanford University','United States','Stanford University'],['Massachusetts Institute of Technology','United States','Massachusetts Institute of Technology'],
         ['University of Cambridge','United Kingdom','University of Cambridge'],['University of Oxford','United Kingdom','University of Oxford'],
         ['New York University','United States','New York University'],['University of Toronto','Canada','University of Toronto'],['University of Sydney','Australia','University of Sydney'],
         ['Technical University of Munich','Germany','Technische Universität München'],['National University of Singapore','Singapore','National University of Singapore'],
@@ -178,25 +178,101 @@
         ['Nagoya University','Japan','名古屋大学'],['Hokkaido University','Japan','北海道大学'],['Kyushu University','Japan','九州大学'],['University of Tsukuba','Japan','筑波大学'],
         ['University of Oxford','United Kingdom','University of Oxford'],['University of Cambridge','United Kingdom','University of Cambridge'],['Imperial College London','United Kingdom','Imperial College London'],['University College London','United Kingdom','University College London'],
         ['Technical University of Munich','Germany','Technische Universität München'],['Heidelberg University','Germany','Ruprecht-Karls-Universität Heidelberg'],['Ecole Polytechnique','France','École Polytechnique'],['Sorbonne University','France','Sorbonne Université'],
-        ['University of Bologna','Italy','Università di Bologna'],['Complutense University of Madrid','Spain','Universidad Complutense de Madrid'],['University of Toronto','Canada','University of Toronto']
+        ['University of Bologna','Italy','Università di Bologna'],['Complutense University of Madrid','Spain','Universidad Complutense de Madrid'],['University of Toronto','Canada','University of Toronto'],
+        ['Harvard University','United States','Harvard University'],['Stanford University','United States','Stanford University'],['Massachusetts Institute of Technology','United States','Massachusetts Institute of Technology'],['Yale University','United States','Yale University'],
+        ['Princeton University','United States','Princeton University'],['Columbia University','United States','Columbia University'],['University of Chicago','United States','University of Chicago'],['California Institute of Technology','United States','California Institute of Technology'],
+        ['University of Pennsylvania','United States','University of Pennsylvania'],['Duke University','United States','Duke University'],['Northwestern University','United States','Northwestern University'],['Johns Hopkins University','United States','Johns Hopkins University'],
+        ['University of California, Berkeley','United States','University of California, Berkeley'],['University of California, Los Angeles','United States','University of California, Los Angeles'],['Cornell University','United States','Cornell University'],['Brown University','United States','Brown University'],
+        ['New York University','United States','New York University'],['Carnegie Mellon University','United States','Carnegie Mellon University'],['University of Southern California','United States','University of Southern California'],['University of Virginia','United States','University of Virginia'],
+        ['University of Texas at Austin','United States','University of Texas at Austin'],['University of Michigan, Ann Arbor','United States','University of Michigan, Ann Arbor'],['University of North Carolina at Chapel Hill','United States','University of North Carolina at Chapel Hill'],['Georgia Institute of Technology','United States','Georgia Institute of Technology'],
+        ['University of Wisconsin-Madison','United States','University of Wisconsin-Madison'],['University of Illinois at Urbana-Champaign','United States','University of Illinois at Urbana-Champaign'],['University of Washington','United States','University of Washington'],['Boston University','United States','Boston University'],
+        ['University of Tokyo','Japan','東京大学'],['Kyoto University','Japan','京都大学'],['Osaka University','Japan','大阪大学'],['Tohoku University','Japan','東北大学'],
+        ['Nagoya University','Japan','名古屋大学'],['Hokkaido University','Japan','北海道大学'],['Kyushu University','Japan','九州大学'],['University of Tsukuba','Japan','筑波大学'],
+        ['Kobe University','Japan','神戸大学'],['Waseda University','Japan','早稲田大学'],['Keio University','Japan','慶應義塾大学'],['Sophia University','Japan','上智大学']
       ],
       kindergartens: [
         ['Sunshine Kindergarten','United States'],['Blue Sky Kindergarten','United States'],
         ['Happy Kids Kindergarten','United States'],['Little Angels Kindergarten','United States'],
-        ['Bright Star Kindergarten','United States']
+        ['Bright Star Kindergarten','United States'],['Rainbow Kindergarten','United States'],
+        ['Sunshine Kindergarten','Japan'],['Sakura Kindergarten','Japan'],['Rainbow Kindergarten','Japan'],
+        ['Happy Kindergarten','Japan'],['Star Kindergarten','Japan'],['Green Kindergarten','Japan'],
+        ['Sunshine Kindergarten','United Kingdom'],['Blue Sky Kindergarten','United Kingdom'],['Happy Kindergarten','United Kingdom'],
+        ['Little Star Kindergarten','United Kingdom'],['Rainbow Kindergarten','United Kingdom'],['Greenfield Kindergarten','United Kingdom'],
+        ['Sonnenschein Kindergarten','Germany'],['Blauer Himmel Kindergarten','Germany'],['Frohlicher Kindergarten','Germany'],
+        ['Sternchen Kindergarten','Germany'],['Regenbogen Kindergarten','Germany'],['Grunfeld Kindergarten','Germany'],
+        ['Ecole Maternelle Soleil','France'],['Ecole Maternelle Ciel Bleu','France'],['Ecole Maternelle Joyeuse','France'],
+        ['Ecole Maternelle Petite Etoile','France'],['Ecole Maternelle Arc-en-ciel','France'],['Ecole Maternelle Vert Pre','France'],
+        ['Scuola Materna Sole','Italy'],['Scuola Materna Cielo Blu','Italy'],['Scuola Materna Felice','Italy'],
+        ['Scuola Materna Stellina','Italy'],['Scuola Materna Arcobaleno','Italy'],['Scuola Materna Prato Verde','Italy'],
+        ['Guarderia Sol','Spain'],['Guarderia Cielo Azul','Spain'],['Guarderia Feliz','Spain'],
+        ['Guarderia Estrellita','Spain'],['Guarderia Arcoiris','Spain'],['Guarderia Prado Verde','Spain'],
+        ['Sunshine Kindergarten','Canada'],['Blue Sky Kindergarten','Canada'],['Happy Kindergarten','Canada'],
+        ['Little Star Kindergarten','Canada'],['Rainbow Kindergarten','Canada'],['Greenfield Kindergarten','Canada'],
+        ['First Kindergarten','Australia'],['Green Garden Kindergarten','Australia'],['Bright Horizons Kindergarten','Australia'],
+        ['Little Learners Kindergarten','Australia'],['Sunshine Kids Kindergarten','Australia'],['Rainbow Bridge Kindergarten','Australia']
       ],
       primarySchools: [
         ['Central Primary School','United States'],['Lincoln Elementary','United States'],
         ['Maple Primary','United States'],['Riverside Primary','United States'],
-        ['Oak Elementary','United States'],['Greenwood Primary','United States']
+        ['Oak Elementary','United States'],['Greenwood Primary','United States'],
+        ['Washington Primary','United States'],['Jefferson Primary','United States'],
+        ['Central Primary School','Japan'],['First Primary School','Japan'],['Sakura Primary School','Japan'],
+        ['Sunshine Primary School','Japan'],['Green Primary School','Japan'],['Hope Primary School','Japan'],
+        ['Central Primary School','United Kingdom'],['Lincoln Primary School','United Kingdom'],['Maple Primary School','United Kingdom'],
+        ['Riverside Primary School','United Kingdom'],['Oak Primary School','United Kingdom'],['Greenwood Primary School','United Kingdom'],
+        ['Grundschule Mitte','Germany'],['Grundschule Nr. 1','Germany'],['Ahorn-Grundschule','Germany'],
+        ['Fluss-Grundschule','Germany'],['Eichen-Grundschule','Germany'],['Grunwald-Grundschule','Germany'],
+        ['Ecole Primaire Centrale','France'],['Ecole Primaire No.1','France'],['Ecole Primaire Erable','France'],
+        ['Ecole Primaire Rivage','France'],['Ecole Primaire Chene','France'],['Ecole Primaire Bois-Vert','France'],
+        ['Scuola Primaria Centrale','Italy'],['Scuola Primaria n.1','Italy'],['Scuola Primaria Acero','Italy'],
+        ['Scuola Primaria Riva','Italy'],['Scuola Primaria Quercia','Italy'],['Scuola Primaria Boscoverde','Italy'],
+        ['Colegio Primario Central','Spain'],['Colegio Primario n.1','Spain'],['Colegio Primario Arce','Spain'],
+        ['Colegio Primario Ribera','Spain'],['Colegio Primario Roble','Spain'],['Colegio Primario Bosque Verde','Spain'],
+        ['Central Primary School','Canada'],['Lincoln Elementary','Canada'],['Maple Primary School','Canada'],
+        ['Riverside Primary School','Canada'],['Oak Primary School','Canada'],['Greenwood Primary School','Canada'],
+        ['First Primary School','Australia'],['Sunrise Primary School','Australia'],
+        ['Harbor Primary School','Australia'],['Bushland Primary School','Australia'],
+        ['Coastal Primary School','Australia']
       ],
       middleSchools: [
         ['Central Middle School','United States'],['Lincoln Junior High','United States'],
-        ['Maple Middle','United States'],['Riverside Middle','United States'],['Oak Middle','United States']
+        ['Maple Middle','United States'],['Riverside Middle','United States'],['Oak Middle','United States'],
+        ['Washington Middle','United States'],['Jefferson Middle','United States'],['Franklin Middle','United States'],
+        ['Central Middle School','Japan'],['First Middle School','Japan'],['Sakura Middle School','Japan'],
+        ['Sunshine Middle School','Japan'],['Green Middle School','Japan'],
+        ['Central Secondary School','United Kingdom'],['Lincoln Secondary School','United Kingdom'],['Maple Secondary School','United Kingdom'],
+        ['Riverside Secondary School','United Kingdom'],['Oak Secondary School','United Kingdom'],
+        ['Mittelschule Mitte','Germany'],['Mittelschule Nr. 1','Germany'],['Ahorn-Mittelschule','Germany'],
+        ['Fluss-Mittelschule','Germany'],['Eichen-Mittelschule','Germany'],
+        ['College Central','France'],['College No.1','France'],['College Erable','France'],
+        ['College Rivage','France'],['College Chene','France'],
+        ['Scuola Media Centrale','Italy'],['Scuola Media n.1','Italy'],['Scuola Media Acero','Italy'],
+        ['Scuola Media Riva','Italy'],['Scuola Media Quercia','Italy'],
+        ['Instituto Central','Spain'],['Instituto n.1','Spain'],['Instituto Arce','Spain'],
+        ['Instituto Ribera','Spain'],['Instituto Roble','Spain'],
+        ['Central Middle School','Canada'],['Lincoln Middle School','Canada'],['Maple Middle School','Canada'],
+        ['Riverside Middle School','Canada'],['Oak Middle School','Canada'],
+        ['First Middle School','Australia'],['Sunrise Middle School','Australia'],['Harbor Middle School','Australia']
       ],
       highSchools: [
         ['Central High School','United States'],['Lincoln High','United States'],
-        ['Maple High','United States'],['Riverside High','United States'],['Oak High','United States']
+        ['Maple High','United States'],['Riverside High','United States'],['Oak High','United States'],
+        ['Washington High','United States'],['Jefferson High','United States'],
+        ['Central High School','Japan'],['First High School','Japan'],['Sakura High School','Japan'],
+        ['Sunshine High School','Japan'],['Green High School','Japan'],
+        ['Central Sixth Form','United Kingdom'],['Lincoln Sixth Form','United Kingdom'],['Maple Sixth Form','United Kingdom'],
+        ['Riverside Sixth Form','United Kingdom'],['Oak Sixth Form','United Kingdom'],
+        ['Gymnasium Mitte','Germany'],['Gymnasium Nr. 1','Germany'],['Ahorn-Gymnasium','Germany'],
+        ['Fluss-Gymnasium','Germany'],['Eichen-Gymnasium','Germany'],
+        ['Lycee Central','France'],['Lycee No.1','France'],['Lycee Erable','France'],
+        ['Lycee Rivage','France'],['Lycee Chene','France'],
+        ['Liceo Centrale','Italy'],['Liceo n.1','Italy'],['Liceo Acero','Italy'],
+        ['Liceo Riva','Italy'],['Liceo Quercia','Italy'],
+        ['Instituto Central','Spain'],['Instituto n.1','Spain'],['Instituto Arce','Spain'],
+        ['Instituto Ribera','Spain'],['Instituto Roble','Spain'],
+        ['Central High School','Canada'],['Lincoln High School','Canada'],['Maple High School','Canada'],
+        ['Riverside High School','Canada'],['Oak High School','Canada'],
+        ['First High School','Australia'],['Sunrise High School','Australia'],['Harbor High School','Australia'],['Coastal High School','Australia']
       ],
       majors: ['Computer Science','Software Engineering','Electrical Engineering','Business Administration','Economics','Finance','Law','Clinical Medicine','Chinese Language','Foreign Languages','Mathematics','Physics','Chemistry','Biological Sciences','Architecture','Mechanical Engineering','Automation','Journalism','Psychology','Environmental Science','Data Science'],
       educations: ['High School','Associate Degree','Bachelor','Master','PhD','Postdoc'],
@@ -224,7 +300,7 @@
       eyeColors: ['Black','Brown','Blue','Green','Gray','Amber'],
       skinTones: ['Fair','Light','Natural','Tan','Wheatish','Dark'],
       bloodTypes: ['A','B','AB','O'],
-      bodyTypes: ['Slim','Athletic','Muscular','Chubby','Average','Fit'],
+      bodyTypes: ['Slim','Athletic','Muscular','Chubby','Average','Fit','Sporty'],
       signatures: ['Stay hungry, stay foolish','Keep calm and carry on','Live life to the fullest','Dream big, work hard','Less is more','Carpe diem','Seize the day','Chase your dreams'],
       securityQA: [
         ['What is your first pet\'s name?','Buddy'],
@@ -2216,4 +2292,8 @@
   };
 
   FakeID.profile = { pools: PROFILE, timezones: TIMEZONES };
+  // 并行数组完整性自检（需 util.js 已加载，index.html defer 顺序保证）
+  if (FakeID.util && FakeID.util.validateParallelArrays) {
+    FakeID.util.validateParallelArrays(PROFILE.zh, PROFILE.en);
+  }
 })(window);

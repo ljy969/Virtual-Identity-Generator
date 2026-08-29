@@ -30,37 +30,54 @@
   var streets = ['Via Roma','Via Garibaldi','Corso Italia','Via Dante','Via Galileo','Via Marconi','Viale dei Mille','Via Trento','Via Trieste','Via Bologna'];
   var companies = ['Italia Tech SRL','Mediterraneo SpA','Colosseo Media','Serenissima Logistics','Vesuvio Software','Adriatico Commerce'];
   var jobs = util.occupationPool('it');
+
+  // 辅音/元音提取（意大利语规则：B C D F G H J K L M N P Q R S T V W X Y Z 为辅音，其余为元音）
+  var CONSONANTS = 'BCDFGHJKLMNPQRSTVWXYZ';
+  var VOWELS = 'AEIOU';
+
+  function cfExtract(name, count) {
+    name = String(name || '').toUpperCase().replace(/[^A-Z]/g, '');
+    var cons = '', vowels = '';
+    for (var i = 0; i < name.length; i++) {
+      var ch = name.charAt(i);
+      if (CONSONANTS.indexOf(ch) >= 0) cons += ch;
+      else if (VOWELS.indexOf(ch) >= 0) vowels += ch;
+    }
+    var pool = cons + vowels;
+    var out = '';
+    for (var i = 0; i < count; i++) {
+      out += pool.charAt(i) || 'X'; // 不足补 X
+    }
+    return out;
+  }
+
   function cf(ctx) {
     // Codice Fiscale 格式：LLLNNNYYMDDZZZZX (16字符)
-    // LLL: 姓氏辅音 (3字母) - 简化为随机大写字母
-    // NNN: 名字辅音 (3字母) - 简化为随机大写字母
+    // LLL: 姓氏前3辅音（不足补元音，仍不足补 X）
+    // NNN: 名字前3辅音
     // YY: 出生年份后两位
     // M: 出生月份字母 (A-L)
     // DD: 出生日 (男1-31, 女41-71)
-    // ZZZZ: 出生地编码 (4字符) - 使用真实地籍编码样本
-    // X: 校验字符 - 按官方算法计算
-    // 注意：这是演示用简化实现，姓名辅音提取和地籍编码为随机，但校验字符算法正确
+    // ZZZZ: 出生地编码 (4字符)
+    // X: 校验字符
     var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    var n = '0123456789';
     var months = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, 12);
-    // 意大利地籍编码样本 (真实编码首字母+3位数字)
     var cadastralCodes = ['H501','F205','D612','L219','M261','B354','A944','C351','E815','G273'];
-    var out = '';
-    // 姓氏3字母 (随机大写)
-    for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
-    // 名字3字母 (随机大写)
-    for (var i = 0; i < 3; i++) out += s.charAt(util.randInt(0, 25));
-    // 年份2位 (随机 1950-2004)
-    out += String(util.randInt(50, 104)).slice(-2);
-    // 月份1字母
-    out += months.charAt(util.randInt(0, 11));
-    // 日期2位 (含性别偏移)
     var gender = ctx && ctx.gender ? ctx.gender : (util.chance(0.5) ? 'male' : 'female');
-    var day = util.randInt(1, 28); // 简化：避免月份天数问题
+    var bdate = ctx && ctx.bdate ? ctx.bdate : util.randomDate(1965, 2004);
+    var surname = ctx && ctx.last ? ctx.last : util.pick(surnames);
+    var given = ctx && ctx.first ? ctx.first : util.pick(gender === 'male' ? givenMale : givenFemale);
+
+    var out = '';
+    out += cfExtract(surname, 3);                    // 姓氏3辅音
+    out += cfExtract(given, 3);                      // 名字3辅音
+    out += String(bdate.getFullYear()).slice(-2);    // 年份后2位
+    out += months.charAt(bdate.getMonth());          // 月份字母 A-L
+    var day = bdate.getDate();
     if (gender === 'female') day += 40;
-    out += util.pad(day, 2);
-    // 出生地4字符
-    out += util.pick(cadastralCodes);
+    out += util.pad(day, 2);                         // 日期
+    out += util.pick(cadastralCodes);                // 出生地编码
+
     // 校验字符 (官方算法: 奇偶位分别加权求和模26)
     var oddMap = {'0':1,'1':0,'2':5,'3':7,'4':9,'5':13,'6':15,'7':17,'8':19,'9':21,
       'A':1,'B':0,'C':5,'D':7,'E':9,'F':13,'G':15,'H':17,'I':19,'J':21,
@@ -71,7 +88,6 @@
     var sum = 0;
     for (var i = 0; i < 15; i++) {
       var ch = out.charAt(i);
-      // 从右往左第1位(索引14)为奇数位，第2位为偶数位... 即 (15-i) % 2 === 1 为奇数位
       if ((15 - i) % 2 === 1) sum += oddMap[ch] || 0;
       else sum += evenMap[ch] || 0;
     }

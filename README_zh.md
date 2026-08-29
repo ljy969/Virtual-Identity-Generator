@@ -57,7 +57,9 @@
 - **灵活的控件** —— 性别、年龄模式（随机 / 指定 / 区间）、邮箱后缀（按国家随机 / 主流邮箱 / 自定义）、卡组织，以及批量数量（1/3/5/10 条）。
 - **复制全部**（Clipboard API，并带 `execCommand` 兼容回退）与 **导出 CSV**（带 UTF-8 BOM、符合 RFC 的引号/转义），便于在测试与演示中快速复用。
 - **扩展档案** —— 学历、专业、学校（及学校所在国）、公司规模、收入等级、技能、兴趣、人格特征、宠物、喜好食物、旅行风格、外貌（发色/瞳色/肤色）、血型、体型、**安全问题与安全答案**、**在线签名**、时区与网站。
-- **国家专属安全问答与在线签名** —— 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名。非中、非英国家（日本、德国、法国、意大利、西班牙）还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。
+- **国家专属安全问答与在线签名** —— 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名，存储于 `PROFILE.securityQAByCountry` 和 `PROFILE.signaturesByCountry`（见 `assets/js/data/profile.js`）。例如，**日本** 身份将获得如 _"母の旧姓は何ですか？"_ → _"田中"_ 的问答，而 **美国** 身份则获得 _"What is your mother's maiden name?"_ → _"Smith"_。每组问答均提供中、英双语版本供界面显示；对于母语非中、非英的国家（日本、德国、法国、意大利、西班牙），还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。此前的通用 `securityQA` 池（8 条）仍作为兜底回退，供未来新增国家使用。
+- **邮箱域名白名单校验** —— 自定义邮箱域名在引擎层（`util.isValidEmailDomain`）按严格白名单校验（仅允许 ASCII 字母/数字/点/连字符、至少含一个点分隔顶级域、长度 ≤253），拒绝注入与非法格式；非法输入回退到国家默认域名池并给出警告。
+- **健壮的 CSV 导出** —— 表头取所有记录字段键的**并集**，因此年龄相关字段（`company`、`cardType` 等）不会导致列错位。公式注入前缀（`=`、`+`、`-`、`@`、制表符、换行符、`/`、`|`）按 OWASP CSV 注入防护建议自动前置单引号中和。
 
 ---
 
@@ -285,7 +287,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 ## 复制与 CSV 导出
 
 - **复制全部** —— 将全部生成记录（按当前语言本地化）拼接为纯文本块，通过 `navigator.clipboard.writeText` 写入剪贴板；在不支持的浏览器中回退到隐藏 `<textarea>` + `document.execCommand('copy')`。
-- **导出 CSV** —— 输出以 BOM（`﻿`）开头的 UTF-8 文件，确保 Excel 正确识别中文；对含逗号、引号或换行的字段进行符合 RFC 的引号/转义处理。表头使用本地化后的字段标签。
+- **导出 CSV** —— 输出以 BOM（`﻿`）开头的 UTF-8 文件，确保 Excel 正确识别中文；对含逗号、引号或换行的字段进行符合 RFC 的引号/转义处理。表头使用本地化后的字段标签。**公式注入前缀**（`=`、`+`、`-`、`@`、制表符、换行符、`/`、`|`）通过前置单引号中和。
 
 ---
 
@@ -306,6 +308,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
         └── data
             ├── occupations.js  # 各语言职业池（util.occupationPool）
             ├── maildomains.js  # 各语言邮箱域名池（util.emailPool）
+            ├── profile.js      # 扩展档案池（学校/学历/收入/技能/外貌/安全问答/签名/时区等）
             ├── china.js        # registerCountry('china', …) —— 自定义 make()
             ├── us.js           # registerCountry('us', …)   —— buildWestern
             ├── japan.js        # registerCountry('japan', …)
@@ -326,11 +329,11 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 | 模块 | 职责 |
 | --- | --- |
 | `i18n.js` | 中英文案字典：界面字符串、字段标签、卡组织品牌名、国家名、年龄类别职业标签；提供 `apply()`、`t()`、`field()`、`card()`、`gender()`、`countryLabel()`、`occLabel()`、`setLang()`、`onChange()`。 |
-| `util.js` | 核心引擎：随机数助手、日期/年龄逻辑、身高体重、按年龄的职业/公司、密码/句柄生成、中国身份证校验、邮箱/池解析器、共享的 `buildWestern()` 档案构建器、`cardTypes` 注册表与 Luhn 逻辑，以及**国家注册表**（`registerCountry`）。 |
+| `util.js` | 核心引擎：随机数助手、日期/年龄逻辑、身高体重、按年龄的职业/公司、密码/句柄生成、中国身份证校验、邮箱/池解析器、共享的 `buildWestern()` 档案构建器、 `cardTypes` 注册表与 Luhn 逻辑，以及**国家注册表**（`registerCountry`）。 |
 | `generator.js` | 对外入口 `FakeID.generate(code, opts)` 与 `FakeID.listCountries()`。 |
 | `theme.js` | 主题偏好 + 观察者；向 `<html>` 写入 `data-theme`。 |
 | `app.js` | 串联 DOM：国家→地区→城市→区县 的级联选择、控件联动、渲染、复制/导出，以及语言/主题切换。 |
-| `data/*.js` | 每个文件一次 `registerCountry(code, cfg)` 调用。`occupations.js` 与 `maildomains.js` 提供共享的、按语言分组的池。 |
+| `data/*.js` | 每个文件一次 `registerCountry(code, cfg)` 调用。`occupations.js` 与 `maildomains.js` 提供共享的、按语言分组的池。`profile.js` 提供扩展档案池，注册为 `FakeID.profile`。 |
 
 **扩展模型：** 一个国家/地区本质上只是一个调用 `FakeID.registerCountry('code', { label, locale, regions, make })` 的数据文件。界面通过 `FakeID.listCountries()` 自动发现它 —— 除新增 `<script>` 标签外，无需改动 `app.js` 或 `index.html` 的控件逻辑。
 
@@ -384,7 +387,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 
 2. **登记语言字符串**（国家名 + 任何新增职业文本）到 `assets/js/i18n.js` —— 将代码加入 `zh` 与 `en` 两个 `COUNTRY` 映射，使下拉标签能正确本地化。
 
-3. **加载脚本**：在 `index.html` 的 `defer` 顺序中加入该文件，位置在 `util.js` / `occupations.js` / `maildomains.js` 之后、`generator.js` 之前：
+3. **加载脚本**：在 `index.html` 的 `defer` 顺序中加入该文件，位置在 `util.js` / `occupations.js` / `maildomains.js` / `profile.js` 之后、`generator.js` 之前：
 
 ```html
 <script defer src='assets/js/data/example.js'></script>
@@ -407,6 +410,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 | `util` | `Object` | 核心引擎（见下）。 |
 | `i18n` | `Object` | 国际化 API（见下）。 |
 | `theme` | `Object` | 主题 API（见下）。 |
+| `profile` | `Object` | 扩展档案池与时区映射（`pools`、`timezones`）。 |
 
 ### 生成选项（`opts`）
 
@@ -421,10 +425,11 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 | `ageExact` | 数字 | 当 `ageMode === 'exact'` 时使用。 |
 | `ageMin` / `ageMax` | 数字 | 当 `ageMode === 'range'` 时使用。 |
 | `emailDomain` | 字符串 | 覆盖国家默认邮箱域名（自动去除前导 `@`）。 |
+| `countryCode` | 字符串 | 供 `profileFields` 使用以选取国家专属池（生成器自动设置）。 |
 
 ### `FakeID.util`（择要）
 
-`randInt(min,max)`、`pick(arr)`、`chance(p)`、`pad(n,len)`、`randomDate(y1,y2)`、`formatDate(d,sep)`、`ageFrom(d)`、`deaccent(s)`、`birthDate(opts)`、`birthDateForAge(age)`、`bodyMetrics(gender,age)`、`occupationForAge(age,cfg)`、`companyForAge(age,cfg)`、`password(len)`、`randomHandle(len)`、`chinaIDChecksum(body17)`、`makeChinaID(region6,date)`、`emailDomain(opts,defaults)`、`buildWestern(cfg,opts)`、`emailPool(locale)`、`occupationPool(locale)`、`cardTypes`、`cardTypeKeys()`、`luhnCheckDigit(body)`、`creditCard(opts)`、`formatCardNumber(num,key)`、`creditCardFields(opts)`、`creditCardForAge(age,opts)`、`registerCountry(code,cfg)`。
+`randInt(min,max)`、`pick(arr)`、`chance(p)`、`pad(n,len)`、`randomDate(y1,y2)`、`formatDate(d,sep)`、`ageFrom(d)`、`deaccent(s)`、`birthDate(opts)`、`birthDateForAge(age)`、`bodyMetrics(gender,age)`、`occupationForAge(age,cfg)`、`companyForAge(age,cfg)`、`password(len)`、`randomHandle(len)`、`chinaIDChecksum(body17)`、`makeChinaID(region6,date)`、`emailDomain(opts,defaults)`、`isValidEmailDomain(domain)`、`buildWestern(cfg,opts)`、`emailPool(locale)`、`occupationPool(locale)`、`cardTypes`、`cardTypeKeys()`、`luhnCheckDigit(body)`、`creditCard(opts)`、`formatCardNumber(num,key)`、`creditCardFields(opts)`、`creditCardForAge(age,opts)`、`registerCountry(code,cfg)`、`profileFields(opts,ctx)`、`timezoneFor(code)`、`websiteFor(ctx)`、`validateParallelArrays(zhPool, enPool, keys)`。
 
 ### `FakeID.i18n`
 
@@ -434,6 +439,10 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 
 `SUPPORTED`（`['system','light','dark']`）、`pref()`、`systemPrefersDark()`、`isDark()`、`set(theme)`、`onChange(cb)`。
 
+### `FakeID.profile`
+
+`pools` — 扩展档案数据对象（`zh`/`en` 以及 `securityQAByCountry`、`signaturesByCountry`）。`timezones` — 国家代码→IANA 时区映射。
+
 ---
 
 ## 隐私与安全
@@ -441,6 +450,8 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 - **无网络访问。** 页面零外部请求（无 CDN、无分析、无外部字体、无遥测）。打开浏览器「网络」面板，不会看到任何数据离开浏览器。
 - **不存储生成数据。** 记录仅在 DOM 中存在，直到你复制或导出；不会写入服务器或被共享。
 - **纯合成。** 所有取值均为随机生成；证件虽遵循公开格式规范，但**并非**有效签发号码，不得用于代表真实个人。
+- **CSV 注入防护** — 公式前缀（`=`、`+`、`-`、`@`、制表符、换行符、`/`、`|`）通过前置单引号中和。
+- **邮箱域名白名单** — `util.isValidEmailDomain` 在引擎层强制校验域名格式（ASCII、合法标签结构、长度 ≤253），UI 与程序化调用共用同一防线。
 
 ---
 
@@ -456,9 +467,9 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 ## Star 历史
 
 <a href="https://www.star-history.com/?repos=ljy969%2FVirtual-Identity-Generator&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&theme=dark&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
- </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&theme=dark&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ljy969/Virtual-Identity-Generator&type=date&legend=top-left&sealed_token=3qIFWIq4W_I-K9HkzvFZigUDxouDgAhC2iSEf1vV-m65Kx6TzulfXGXOfTWEu6m9qBYhJEayzj8JC7oMewXrlQwMavS4PPY02dzAwQDHI8NJfm1zOQxWSA" />
+  </picture>
 </a>

@@ -45,7 +45,7 @@
       return rem;
     };
     var key = 97 - mod97(body);
-    if (key === 97) key = 99;
+    // 官方 NIR 校验键合法域为 01-97；body % 97 === 0 时 key=97（合法），移除错误的 99 特判
     return sex + yy + '-' + mm + '-' + dept + commune + '-' + order + '-' + util.pad(key, 2);
   }
   FakeID.registerCountry('france', {

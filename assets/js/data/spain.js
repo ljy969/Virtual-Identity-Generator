@@ -32,12 +32,13 @@
   var dniLetters = 'TRWAGMYFPDXBNJZSQVHLCKE'.split(''); // 官方 DNI/NIE 校验字母表 (mod 23)
   function dni() {
     // 约 15% 概率生成 NIE (外国人身份号码)，格式：X/Y/Z + 7位数字 + 校验字母
-    // NIE 校验：去掉首字母 X/Y/Z (对应 0/1/2)，对剩余 7 位数字模 23
+    // NIE 校验：首字母 X/Y/Z 映射为 0/1/2，与 7 位数字拼成 8 位整数后模 23
     if (util.chance(0.15)) {
       var prefix = util.pick(['X', 'Y', 'Z']);
       var n = util.randInt(1000000, 9999999);
       var body = prefix + util.pad(n, 7);
-      var numForCheck = parseInt(body.slice(1), 10); // 去掉首字母
+      var map = {'X':0,'Y':1,'Z':2};
+      var numForCheck = map[prefix] * 10000000 + n; // X/Y/Z→0/1/2 在最高位
       return body + dniLetters[numForCheck % 23];
     }
     // 标准 DNI: 8位数字 + 校验字母

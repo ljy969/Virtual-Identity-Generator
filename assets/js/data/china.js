@@ -160,7 +160,7 @@
     {name:'克拉玛依市',code:'650202', districts:['克拉玛依区','独山子区','白碱滩区','乌尔禾区']},
     {name:'喀什市',code:'653101'},
     {name:'伊宁市',code:'654002'} ] },
-  { name:'台湾省', abbr:'TW', cities:[ {name:'台北市',code:'710101'}, {name:'高雄市',code:'710301'}, {name:'台中市',code:'710201'}, {name:'台南市',code:'710201'} ] },
+  { name:'台湾省', abbr:'TW', cities:[ {name:'台北市',code:'710101'}, {name:'高雄市',code:'710301'}, {name:'台中市',code:'710201'}, {name:'台南市',code:'710302'} ] },
   { name:'香港特别行政区', abbr:'HK', cities:[ {name:'香港', code:'810000'} ] },
   { name:'澳门特别行政区', abbr:'MO', cities:[ {name:'澳门', code:'820000'} ] }
 
@@ -175,13 +175,23 @@
     opts = opts || {};
     var region = null, city = null, district = null;
     if (opts.region) {
-      for (var i = 0; i < regions.length; i++) if (regions[i].name === opts.region) { region = regions[i]; break; }
+      for (var i = 0; i < regions.length; i++) {
+        if (regions[i].name === opts.region || regions[i].abbr === opts.region) { region = regions[i]; break; }
+      }
     }
-    if (!region) region = util.pick(regions);
-    if (opts.city) {
+    if (!region && regions.length) region = util.pick(regions);
+    if (opts.city && region) {
       for (var j = 0; j < region.cities.length; j++) if (region.cities[j].name === opts.city) { city = region.cities[j]; break; }
     }
-    if (!city) city = util.pick(region.cities);
+    if (!city && region && region.cities.length) city = util.pick(region.cities);
+    // 防御：所选城市缺失 6 位地区码时，退回到该地区内带 code 的城市，避免 makeChinaID 抛错
+    if (city && !/^\d{6}$/.test(String(city.code || ''))) {
+      var withCode = (region && region.cities) ? region.cities.filter(function (c) { return c && /^\d{6}$/.test(String(c.code || '')); }) : [];
+      city = withCode.length ? util.pick(withCode) : city;
+      if (!withCode.length && typeof console !== 'undefined' && console.warn) {
+        console.warn('[FakeID] 所选中国城市缺少有效地区码:', city && city.name);
+      }
+    }
     // 区/县：若城市含 districts（地级市下的区/县），优先使用所选区，否则随机取一个
     if (city && city.districts && city.districts.length) {
       if (opts.district) {

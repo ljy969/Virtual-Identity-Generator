@@ -59,6 +59,10 @@ var util = (function (global) {
       crypto.getRandomValues(arr);
       return arr[0] / 0x100000000;
     } catch (e) {
+      // 显式告警：随机源已降级为可预测的 Math.random（仅作兼容，敏感字段安全性下降）
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[FakeID] crypto.getRandomValues 不可用，已降级为 Math.random；生成的密码/证件序列不再具备加密安全性:', e);
+      }
       return Math.random();
     }
   };
@@ -106,20 +110,15 @@ var util = (function (global) {
 
   /**
    * 在 [startYear, endYear] 范围内生成随机日期
+   * 使用整数天数采样（本地正午 12:00），与 ageFrom/birthDateForAge 保持同一本地时间基准，
+   * 避免 UTC 采样与本地 getter 混用导致的 DST/时区边界日期偏移。
    * @param {number} startYear - 起始年份
    * @param {number} endYear - 结束年份
-   * @returns {Date} 随机日期
-   */
-  /**
-   * 在 [startYear, endYear] 范围内生成随机日期
-   * 使用整数天数采样，避免 DST 导致的边界日期权重偏差
-   * @param {number} startYear - 起始年份
-   * @param {number} endYear - 结束年份
-   * @returns {Date} 随机日期 (UTC 中午 12:00，避免时区跨日)
+   * @returns {Date} 随机日期 (本地中午 12:00，避免时区跨日)
    */
   util.randomDate = function (startYear, endYear) {
-    var start = Date.UTC(startYear, 0, 1, 12, 0, 0);
-    var end = Date.UTC(endYear, 11, 31, 12, 0, 0);
+    var start = new Date(startYear, 0, 1, 12, 0, 0).getTime();
+    var end = new Date(endYear, 11, 31, 12, 0, 0).getTime();
     var days = Math.floor((end - start) / 86400000);
     var offset = util.randInt(0, days);
     return new Date(start + offset * 86400000);
@@ -396,6 +395,11 @@ var util = (function (global) {
     return c[sum % 11];
   };
   util.makeChinaID = function (region6, date) {
+    // 校验 6 位地区码：必须是 6 位数字（GB/T 2260 行政区划码）
+    region6 = String(region6 || '');
+    if (!/^\d{6}$/.test(region6)) {
+      throw new Error('无效的地区码: ' + region6 + '（应为 6 位数字）');
+    }
     var body = region6 + util.formatDate(date, '') + util.pad(util.randInt(1, 999), 3);
     return body + util.chinaIDChecksum(body);
   };
@@ -432,16 +436,36 @@ var util = (function (global) {
 
   /* 解析邮箱域名：优先使用 opts.emailDomain（下拉选择或自定义固定后缀），
    * 未指定或为空时从国家默认域名列表中随机取一个。用户可能带前导 @，这里统一去除。 */
+  /* 合法的自定义邮箱域名白名单：仅允许字母/数字/点/连字符，至少一个点分隔顶级域。
+   * 引擎层统一校验（UI 与任意调用方共用同一防线），拒绝空、含注入字符或非法格式的域名。 */
+  util.isValidEmailDomain = function (d) {
+    if (d == null) return false;
+    d = String(d).trim().replace(/^@+/, '');
+    return /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/.test(d) && d.length <= 253;
+  };
   util.emailDomain = function (opts, defaultDomains) {
     opts = opts || {};
     if (opts.emailDomain && String(opts.emailDomain).trim()) {
-      return String(opts.emailDomain).trim().replace(/^@+/, '');
+      var raw = String(opts.emailDomain).trim().replace(/^@+/, '');
+      // 非法域名（含注入/格式错误）时回退到国家默认域名，而非原样拼接进邮箱
+      if (util.isValidEmailDomain(raw)) return raw;
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[FakeID] 非法自定义邮箱域名已忽略，回退默认域名:', raw);
+      }
     }
     return util.pick(defaultDomains);
   };
 
   util.buildWestern = function (cfg, opts) {
     opts = opts || {};
+    // 防御性默认值：新增国家漏传 phonePrefix/phoneLen/surnames/domains 时不至抛 TypeError
+    cfg = cfg || {};
+    cfg.phonePrefix = cfg.phonePrefix || ['0'];
+    cfg.phoneLen = cfg.phoneLen || 7;
+    cfg.surnames = cfg.surnames || ['X'];
+    cfg.givenMale = cfg.givenMale || ['M'];
+    cfg.givenFemale = cfg.givenFemale || ['F'];
+    cfg.domains = cfg.domains || ['example.com'];
     var rc = resolveRegionCity(cfg.regions, opts);
     var region = rc.region, city = rc.city;
     var gender = opts.gender === 'random' ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
@@ -568,6 +592,9 @@ var util = (function (global) {
       : opts.cardType;
     var t = util.cardTypes[key] || util.cardTypes[util.pick(util.cardTypeKeys())];
     var prefix = util.pick(t.prefixes);
+    // 防御：前缀长度必须 < 卡号长度，否则截断，避免生成超长/非法卡号
+    var maxBodyLen = Math.max(1, t.len - 1);
+    if (prefix.length > maxBodyLen) prefix = prefix.slice(0, maxBodyLen);
     var body = String(prefix);
     while (body.length < t.len - 1) body += String(util.randInt(0, 9));
     var number = body + util.luhnCheckDigit(body);
@@ -584,6 +611,10 @@ var util = (function (global) {
   util.formatCardNumber = function (num, key) {
     var t = util.cardTypes[key];
     var format = (t && t.format) ? t.format : '4-4-4-4';
+    // 防御：分段总和与实际卡号长度不一致时，直接原样返回，避免 substr 错切
+    var fmtSum = 0;
+    format.split('-').forEach(function (p) { fmtSum += parseInt(p, 10) || 0; });
+    if (String(num).length !== fmtSum) return String(num);
     var parts = format.split('-');
     var out = '';
     var idx = 0;
@@ -695,10 +726,16 @@ var util = (function (global) {
         var fb2 = pickBoth('securityQA');
         return { zh: fb2.zh, en: fb2.en, nativeLang: 'zh', native: fb2.zh };
       }
-      var idx = util.randInt(0, nativeArr.length - 1);
+      // 以 zh/en/native 三语的最小长度取界，避免任一阵列缺失/较短时同 idx 越界或错位
+      var zhArr2 = pool.zh || [];
+      var enArr2 = pool.en || [];
+      var safeLen = nativeArr.length;
+      if (zhArr2.length && zhArr2.length < safeLen) safeLen = zhArr2.length;
+      if (enArr2.length && enArr2.length < safeLen) safeLen = enArr2.length;
+      var idx = util.randInt(0, safeLen - 1);
       return {
-        zh: (pool.zh && pool.zh[idx]) || nativeArr[idx],
-        en: (pool.en && pool.en[idx]) || nativeArr[idx],
+        zh: zhArr2[idx] || nativeArr[idx] || nativeArr[nativeArr.length - 1],
+        en: enArr2[idx] || nativeArr[idx] || nativeArr[nativeArr.length - 1],
         nativeLang: nativeLang,
         native: nativeArr[idx]
       };
@@ -723,10 +760,16 @@ var util = (function (global) {
         var fb2 = pickBoth('signatures');
         return { zh: fb2.zh, en: fb2.en, nativeLang: 'zh', native: fb2.zh };
       }
-      var idx = util.randInt(0, nativeArr.length - 1);
+      // 以 zh/en/native 三语的最小长度取界，避免任一阵列缺失/较短时同 idx 越界或错位
+      var zhArr2 = pool.zh || [];
+      var enArr2 = pool.en || [];
+      var safeLen = nativeArr.length;
+      if (zhArr2.length && zhArr2.length < safeLen) safeLen = zhArr2.length;
+      if (enArr2.length && enArr2.length < safeLen) safeLen = enArr2.length;
+      var idx = util.randInt(0, safeLen - 1);
       return {
-        zh: (pool.zh && pool.zh[idx]) || nativeArr[idx],
-        en: (pool.en && pool.en[idx]) || nativeArr[idx],
+        zh: zhArr2[idx] || nativeArr[idx] || nativeArr[nativeArr.length - 1],
+        en: enArr2[idx] || nativeArr[idx] || nativeArr[nativeArr.length - 1],
         nativeLang: nativeLang,
         native: nativeArr[idx]
       };
@@ -932,6 +975,22 @@ var util = (function (global) {
     var handle = ctx.handle || util.randomHandle(8);
     var tld = util.pick(['test', 'example', 'invalid', 'localhost']);
     return 'https://www.' + String(handle).toLowerCase() + '.' + tld;
+  };
+
+  /* 并行数组完整性自检：校验 profile.js 中 zh/en 数组同键长度一致 */
+  util.validateParallelArrays = function (zhPool, enPool, poolKeys) {
+    poolKeys = poolKeys || ['schools','kindergartens','primarySchools','middleSchools','highSchools','majors','educations','schoolTypes','countries','incomeLevels','companySizes','personalities','pets','favoriteFoods','travelStyles','hairColors','eyeColors','skinTones','bloodTypes','bodyTypes','signatures'];
+    var mismatches = [];
+    for (var i = 0; i < poolKeys.length; i++) {
+      var k = poolKeys[i];
+      var zhLen = (zhPool[k] && zhPool[k].length) || 0;
+      var enLen = (enPool[k] && enPool[k].length) || 0;
+      if (zhLen !== enLen) mismatches.push(k + ': zh=' + zhLen + ' en=' + enLen);
+    }
+    if (mismatches.length && typeof console !== 'undefined' && console.warn) {
+      console.warn('[FakeID] profile 并行数组长度不一致（会导致中英错位），请同步更新 zh/en 数组:', mismatches.join('; '));
+    }
+    return mismatches.length === 0;
   };
 
   /* 国家/地区注册表 */

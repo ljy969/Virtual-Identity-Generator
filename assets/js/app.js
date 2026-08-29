@@ -89,10 +89,14 @@
         else if (value.zh != null) selected = value.zh;
         else if (value.en != null) selected = value.en;
       }
-      // 4. 取第一个可用值
+      // 4. 取第一个可用值（排除 nativeLang/zh/en 等元数据键，且值必须是字符串或数组）
       if (selected == null) {
+        var META_KEYS = { nativeLang: 1, zh: 1, en: 1 };
         for (var k in value) {
-          if (value.hasOwnProperty(k) && value[k] != null) { selected = value[k]; break; }
+          if (value.hasOwnProperty(k) && META_KEYS[k] !== 1 &&
+              (typeof value[k] === 'string' || Array.isArray(value[k]))) {
+            selected = value[k]; break;
+          }
         }
       }
       
@@ -321,18 +325,32 @@
     var emailSuffix = emailSuffixSel.value;
     if (emailSuffix === '__custom__') {
       var customDomain = emailCustomSel.value.trim().replace(/^@+/, '');
-      if (customDomain) genOpts.emailDomain = customDomain;
+      // 复用引擎层白名单校验（util.isValidEmailDomain），避免 UI 与引擎校验逻辑分叉
+      if (customDomain) {
+        if (!util.isValidEmailDomain(customDomain)) {
+          flash(i18n.t('flash.domainInvalid'));
+          return;
+        }
+        genOpts.emailDomain = customDomain;
+      }
     } else if (emailSuffix && emailSuffix !== '__random__') {
       genOpts.emailDomain = emailSuffix;
     }
     var batches = [];
-    for (var i = 0; i < n; i++) {
-      batches.push(FakeID.generate(code, genOpts));
+    try {
+      for (var i = 0; i < n; i++) {
+        batches.push(FakeID.generate(code, genOpts));
+      }
+    } catch (err) {
+      // 任一条生成失败时，保留已成功生成的部分并提示错误，避免整页静默失败
+      if (typeof console !== 'undefined' && console.error) console.error('[FakeID] 生成失败:', err);
+      flash(i18n.t('flash.generateFail') || ('生成失败: ' + (err && err.message ? err.message : err)));
+      if (!batches.length) return;
     }
     lastBatches = batches;
     lastCountryCode = code;
     renderResults();
-    flash(i18n.t('flash.generated').replace('{n}', n));
+    flash(i18n.t('flash.generated').replace('{n}', batches.length));
   }
 
   // 按当前语言渲染结果（字段标签与性别/年龄类别职业值均本地化）
@@ -386,10 +404,22 @@
 
   function onExport() {
     if (!lastBatches || !lastBatches.length) return;
-    var labels = lastBatches[0].map(function (f) { return i18n.field(f[0]); });
+    // 字段键并集：不同年龄/国家生成的字段集可能不同（如未成年无 company/card 字段），
+    // 以并集为表头并对齐，避免列错位
+    var allKeys = [];
+    lastBatches.forEach(function (fields) {
+      fields.forEach(function (f) {
+        if (allKeys.indexOf(f[0]) < 0) allKeys.push(f[0]);
+      });
+    });
+    var labels = allKeys.map(function (k) { return i18n.field(k); });
     var rows = [labels.map(csvCell).join(',')];
     lastBatches.forEach(function (fields) {
-      rows.push(fields.map(function (f) { return csvCell(String(localizeValue(f[0], f[1]))); }).join(','));
+      var map = {};
+      fields.forEach(function (f) { map[f[0]] = f[1]; });
+      rows.push(allKeys.map(function (k) {
+        return csvCell(String(localizeValue(k, map[k] !== undefined ? map[k] : '')));
+      }).join(','));
     });
     var csv = '﻿' + rows.join('\n');
     download(csv, 'fake-identities.csv', 'text/csv;charset=utf-8');
@@ -397,15 +427,13 @@
   }
   function csvCell(s) {
     s = String(s);
-    // 移除控制字符 (除 \t \n \r 外的 ASCII 0-31 和 127)
-    s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    // 统一换行为空格
-    s = s.replace(/\r?\n/g, ' ').replace(/\r/g, ' ');
-    // 防御 CSV 公式注入：去除前导空白后，若以 = + - @ 开头则前缀单引号
-    // Excel/Sheets 解析时会忽略前导空白再判断公式前缀
-    var trimmed = s.replace(/^[\s\t\r\n]+/, '');
-    if (/^[=+\-@]/.test(trimmed)) s = "'" + s;
-    // 包含逗号、双引号、换行时用双引号包裹并转义内部双引号
+    // 1) 先剥离/转义所有 ASCII 控制符（含 \t \n \r 与 0x7F），消除 DDE/多值注入载体
+    s = s.replace(/[\x00-\x1F\x7F]/g, ' ');
+    // 2) 公式前缀防护：剥离任意前导空白/控制符后，若首字符为公式/命令前缀则整体前置单引号
+    //    覆盖 = + - @ 及 \t \r \n / | 等等价注入前缀
+    var lead = s.replace(/^[\s]+/, '');
+    if (/^[=+\-@\t\r\n/|]/.test(lead)) s = "'" + s;
+    // 3) 最后按 RFC 4180 包裹：含逗号、双引号、换行时加双引号并转义内部双引号
     if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
     return s;
   }

@@ -57,7 +57,9 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - **Flexible controls** — gender, age mode (random / exact / range), email domain (random per country / popular webmail / custom), card network, and batch count (1/3/5/10).
 - **Copy All** (Clipboard API with an `execCommand` fallback) and **Export CSV** (UTF-8 BOM, RFC-style quoting/escaping) for quick reuse in tests and demos.
 - **Extended profiles** — education, major, school (with country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
-- **Country-specific security QA & signatures** — each of the 9 supported countries has its own pool of 15 culturally-appropriate question/answer pairs and 15 culturally-appropriate online signatures. Non-Chinese/English locales (Japan, Germany, France, Italy, Spain) also retain native-language versions as fallback.
+- **Country-specific security QA & signatures** — each of the 9 supported countries has its own pool of 15 culturally-appropriate question/answer pairs and 15 culturally-appropriate online signatures in `PROFILE.securityQAByCountry` and `PROFILE.signaturesByCountry` (see `assets/js/data/profile.js`). For instance, a **Japanese** identity receives questions like _"母の旧姓は何ですか？"_ → _"田中"_, while a **US** identity receives _"What is your mother's maiden name?"_ → _"Smith"_. Every pair is translated into both Chinese and English for UI display; countries whose native language is neither Chinese nor English (Japan, Germany, France, Italy, Spain) also retain a **native-language version** (e.g., Japanese, German, French, Italian, Spanish) as a fallback. The pre-existing generic `securityQA` pool (8 pairs) is kept as a last-resort fallback for any future country without dedicated QA data.
+- **Email domain validation** — custom email domains are validated against a strict allowlist at the engine layer (`util.isValidEmailDomain`), rejecting injection attempts and malformed domains; invalid input falls back to the country's default domain pool with a warning.
+- **Robust CSV export** — column headers are the **union of all keys** across the generated batch, so age-dependent fields (`company`, `cardType`, etc.) never cause column misalignment. Formula-injection prefixes (=, +, -, @) are neutralized per OWASP CSV Injection prevention.
 
 ---
 
@@ -176,7 +178,7 @@ There are two profile 'shapes':
 
 Fields are stored internally as `[key, value]` pairs and localized at render time according to the active UI language, so the same data can be displayed in either 中文 or English.
 
-In addition to the core fields above, an **extended profile** is appended by `util.profileFields` — covering education, major, school (with the school's country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, **timezone**, and website.
+In addition to the core fields above, an **extended profile** is appended by `util.profileFields` — covering education, major, school (with the school's country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
 
 > **Multi-timezone support**: countries spanning multiple IANA timezones (US, Canada, France, Spain) randomly select a geographically-appropriate zone on each generation (e.g., US → `America/New_York`, `America/Chicago`, `America/Denver`, `America/Los_Angeles`, `America/Anchorage`, `Pacific/Honolulu`; Canada → 29 zones including `America/St_Johns`, `America/Toronto`, `America/Vancouver`; France → Metropolitan + 13 overseas territories; Spain → `Europe/Madrid` + `Atlantic/Canary`). Single-zone countries (China, Japan, UK, Germany, Italy) return their one canonical zone (`Asia/Shanghai`, `Asia/Tokyo`, `Europe/London`, `Europe/Berlin`, `Europe/Rome`).
 
@@ -285,7 +287,7 @@ Brand display names are localized through `i18n.card(key)`.
 ## Copy & CSV Export
 
 - **Copy All** — builds a plain-text block of all generated records (localized to the active language) and writes it via `navigator.clipboard.writeText`, falling back to a hidden `<textarea>` + `document.execCommand('copy')` on unsupported browsers.
-- **Export CSV** — emits a UTF-8 file prefixed with a BOM (`﻿`) so Excel correctly recognizes Chinese; RFC-style quoting/escaping for fields containing commas, quotes, or newlines. Headers use localized field labels.
+- **Export CSV** — emits a UTF-8 file prefixed with a BOM (`﻿`) so Excel correctly recognizes Chinese; RFC-style quoting/escaping for fields containing commas, quotes, or newlines. Headers use localized field labels. **Formula-injection prefixes** (=, +, -, @, tab, newline, /, |) are neutralized by prepending a single quote.
 
 ---
 
@@ -306,6 +308,7 @@ Brand display names are localized through `i18n.card(key)`.
         └── data
             ├── occupations.js  # Per-language occupation pools (util.occupationPool)
             ├── maildomains.js  # Per-language email domain pools (util.emailPool)
+            ├── profile.js      # Extended profile pools (schools, skills, security QA, signatures, timezones, etc.)
             ├── china.js        # registerCountry('china', …) — custom make()
             ├── us.js           # registerCountry('us', …)   — buildWestern
             ├── japan.js        # registerCountry('japan', …)
@@ -330,7 +333,7 @@ The app is built around a single global namespace **`window.FakeID`**, composed 
 | `generator.js` | Public entry points `FakeID.generate(code, opts)` and `FakeID.listCountries()`. |
 | `theme.js` | Theme preference + observer; writes `data-theme` on `<html>`. |
 | `app.js` | Wires up DOM: country→region→city→district cascading, control bindings, render, copy/export, language/theme switching. |
-| `data/*.js` | Each file makes one `registerCountry(code, cfg)` call. `occupations.js` and `maildomains.js` provide shared, per-language pools. |
+| `data/*.js` | Each file makes one `registerCountry(code, cfg)` call. `occupations.js` and `maildomains.js` provide shared, per-language pools. `profile.js` provides extended profile pools (schools, skills, security QA, signatures, timezones) and is registered as `FakeID.profile`. |
 
 **Extensibility model:** a country/region is just a data file calling `FakeID.registerCountry('code', { label, locale, regions, make })`. The UI discovers it automatically via `FakeID.listCountries()` — apart from adding the `<script>` tag, no changes to `app.js` or `index.html` control logic are needed.
 
@@ -384,7 +387,7 @@ The app is built around a single global namespace **`window.FakeID`**, composed 
 
 2. **Register UI strings** (country name + any new occupation text) in `assets/js/i18n.js` — add the code to both `zh` and `en` `COUNTRY` maps so dropdown labels localize correctly.
 
-3. **Load the script**: in `index.html`, add it in the `defer` sequence after `util.js` / `occupations.js` / `maildomains.js` and before `generator.js`:
+3. **Load the script**: in `index.html`, add it in the `defer` sequence after `util.js` / `occupations.js` / `maildomains.js` / `profile.js` and before `generator.js`:
 
 ```html
 <script defer src='assets/js/data/example.js'></script>
@@ -407,6 +410,7 @@ Done — the new country appears in the dropdown with cascading selectors, i18n,
 | `util` | `Object` | Core engine (see below). |
 | `i18n` | `Object` | i18n API (see below). |
 | `theme` | `Object` | Theme API (see below). |
+| `profile` | `Object` | Extended profile pools & timezones (`pools`, `timezones`). |
 
 ### Generation Options (`opts`)
 
@@ -421,10 +425,11 @@ Done — the new country appears in the dropdown with cascading selectors, i18n,
 | `ageExact` | Number | Used when `ageMode === 'exact'`. |
 | `ageMin` / `ageMax` | Number | Used when `ageMode === 'range'`. |
 | `emailDomain` | String | Override country default email domain (leading `@` stripped). |
+| `countryCode` | String | Used by `profileFields` for country-specific pools (auto-set by generator). |
 
 ### `FakeID.util` (selected)
 
-`randInt(min,max)`, `pick(arr)`, `chance(p)`, `pad(n,len)`, `randomDate(y1,y2)`, `formatDate(d,sep)`, `ageFrom(d)`, `deaccent(s)`, `birthDate(opts)`, `birthDateForAge(age)`, `bodyMetrics(gender,age)`, `occupationForAge(age,cfg)`, `companyForAge(age,cfg)`, `password(len)`, `randomHandle(len)`, `chinaIDChecksum(body17)`, `makeChinaID(region6,date)`, `emailDomain(opts,defaults)`, `buildWestern(cfg,opts)`, `emailPool(locale)`, `occupationPool(locale)`, `cardTypes`, `cardTypeKeys()`, `luhnCheckDigit(body)`, `creditCard(opts)`, `formatCardNumber(num,key)`, `creditCardFields(opts)`, `creditCardForAge(age,opts)`, `registerCountry(code,cfg)`.
+`randInt(min,max)`, `pick(arr)`, `chance(p)`, `pad(n,len)`, `randomDate(y1,y2)`, `formatDate(d,sep)`, `ageFrom(d)`, `deaccent(s)`, `birthDate(opts)`, `birthDateForAge(age)`, `bodyMetrics(gender,age)`, `occupationForAge(age,cfg)`, `companyForAge(age,cfg)`, `password(len)`, `randomHandle(len)`, `chinaIDChecksum(body17)`, `makeChinaID(region6,date)`, `emailDomain(opts,defaults)`, `isValidEmailDomain(domain)`, `buildWestern(cfg,opts)`, `emailPool(locale)`, `occupationPool(locale)`, `cardTypes`, `cardTypeKeys()`, `luhnCheckDigit(body)`, `creditCard(opts)`, `formatCardNumber(num,key)`, `creditCardFields(opts)`, `creditCardForAge(age,opts)`, `registerCountry(code,cfg)`, `profileFields(opts,ctx)`, `timezoneFor(code)`, `websiteFor(ctx)`, `validateParallelArrays(zhPool, enPool, keys)`.
 
 ### `FakeID.i18n`
 
@@ -434,6 +439,10 @@ Done — the new country appears in the dropdown with cascading selectors, i18n,
 
 `SUPPORTED` (`['system','light','dark']`), `pref()`, `systemPrefersDark()`, `isDark()`, `set(theme)`, `onChange(cb)`.
 
+### `FakeID.profile`
+
+`pools` — the extended profile data object (`zh`/`en` plus `securityQAByCountry`, `signaturesByCountry`). `timezones` — country→IANA timezone map.
+
 ---
 
 ## Privacy & Security
@@ -441,6 +450,8 @@ Done — the new country appears in the dropdown with cascading selectors, i18n,
 - **No network access.** Zero external requests (no CDN, no analytics, no external fonts, no telemetry). Open the browser Network tab — nothing leaves the browser.
 - **No data retention.** Records exist only in the DOM until you copy or export; nothing is written to a server or shared.
 - **Purely synthetic.** All values are randomly generated; identifiers follow public format specs but are **not** valid issued numbers and must not be used to represent real individuals.
+- **CSV injection defense** — formula prefixes (=, +, -, @, tab, newline, /, |) are neutralized.
+- **Email domain allowlist** — `util.isValidEmailDomain` enforces a strict domain format (ASCII, valid label structure, ≤253 chars) at the engine layer, shared by UI and any programmatic caller.
 
 ---
 
