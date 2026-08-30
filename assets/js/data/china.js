@@ -164,7 +164,7 @@
   { name:'香港特别行政区', abbr:'HK', cities:[ {name:'香港', code:'810000'} ] },
   { name:'澳门特别行政区', abbr:'MO', cities:[ {name:'澳门', code:'820000'} ] }
 
-];;
+];
   var streets = ['人民路','解放路','建设路','中山路','和平路','文化路','迎宾大道','长江路','黄河路','北京路','南京路','世纪大道','高新路','创业路','书香路','滨江路','湖滨路','学院路','工业路','幸福路','振兴路','开元路'];
   var companies = ['星辰科技有限公司','云图网络技术有限公司','华瑞贸易有限公司','博远电子商务有限公司','智联信息技术有限公司','万象文化传媒有限公司','恒通物流有限公司','优创软件开发有限公司','盛源服饰有限公司','金桥医疗器械有限公司','远景智能科技有限公司','同辉数据服务有限公司'];
   var jobs = util.occupationPool('zh');
@@ -208,7 +208,7 @@
     regions: regions,
     make: function (opts) {
       opts = opts || {};
-      var gender = opts.gender === 'random' ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
+      var gender = (!opts.gender || opts.gender === 'random') ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
       var given = gender === 'male' ? givenMale : givenFemale;
       var givenCount = util.chance(0.6) ? 2 : 1;
       var surname = util.pick(surnames);

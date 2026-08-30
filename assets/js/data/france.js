@@ -24,7 +24,7 @@
   {name:'La Reunion',cities:['Saint-Denis','Saint-Pierre']},
   {name:'Mayotte',cities:['Mamoudzou']}
 
-];;
+];
   var streets = ['Rue de la Republique','Avenue de la Gare','Boulevard Victor Hugo','Rue des Lilas','Place de lEglise','Rue Pasteur','Avenue Jean Jaures','Rue Victor Hugo','Chemin des Vignes','Rue de lEcole'];
   var companies = ['Societe Generale Tech','Lumiere SAS','Bleu Logistique','Hexagone Media','Paris Software','Atlantique Commerce'];
   var jobs = util.occupationPool('fr');

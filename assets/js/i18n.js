@@ -55,8 +55,9 @@
       'flash.copyfail': '复制失败，请手动选择',
       'flash.exported': '已导出 CSV',
       'flash.generateFail': '生成失败，请检查设置后重试',
+      'flash.partialFail': '部分生成失败，仅显示已生成的 {n} 条',
       'flash.domainInvalid': '自定义后缀格式无效，请使用合法域名（如 example.com）',
-      'disclaimer': '说明：本页为完全离线工具，不发起任何外部网络请求。国家/地区按「国家 → 地区/省 → 城市 → 区/县(可选)」联动；直辖市/特别行政区/台湾等本身即区级时无需再选。如需新增国家/地区，在 <code>assets/js/data/</code> 下新建一个数据文件，调用 <code>FakeID.registerCountry("code", { label, regions: [{ name, abbr?, cities: ["城市名"] }] })</code>，并在本文件底部按 defer 顺序引入即可，无需改动其它代码。'
+      'disclaimer': '说明：本页为完全离线工具，不发起任何外部网络请求。国家/地区按「国家 → 地区/省 → 城市 → 区/县(可选)」联动；直辖市/特别行政区/台湾等本身即区级时无需再选。如需新增国家/地区，在 `assets/js/data/` 下新建一个数据文件，调用 `FakeID.registerCountry("code", { label, regions: [{ name, abbr?, cities: ["城市名"] }] })`，并在本文件底部按 defer 顺序引入即可，无需改动其它代码。'
     },
     en: {
       'app.title': 'Fake Identity Generator',
@@ -105,8 +106,9 @@
       'flash.copyfail': 'Copy failed, please select manually',
       'flash.exported': 'CSV exported',
       'flash.generateFail': 'Generation failed, please check settings and retry',
+      'flash.partialFail': 'Partial failure: only {n} record(s) generated',
       'flash.domainInvalid': 'Invalid custom domain. Please use a valid domain (e.g. example.com)',
-      'disclaimer': 'Note: This page is a fully offline tool that makes no external network requests. Countries/regions use a cascade of "Country → Region/State → City → District (optional)"; municipalities/SARs/Taiwan are already at district level and need no further selection. To add a new country/region, create a data file under <code>assets/js/data/</code> that calls <code>FakeID.registerCountry("code", { label, regions: [{ name, abbr?, cities: ["City"] }] })</code>, and include it at the bottom of this file in defer order — no other code needs to change.'
+      'disclaimer': 'Note: This page is a fully offline tool that makes no external network requests. Countries/regions use a cascade of "Country → Region/State → City → District (optional)"; municipalities/SARs/Taiwan are already at district level and need no further selection. To add a new country/region, create a data file under `assets/js/data/` that calls `FakeID.registerCountry("code", { label, regions: [{ name, abbr?, cities: ["City"] }] })`, and include it at the bottom of this file in defer order — no other code needs to change.'
     }
   };
 

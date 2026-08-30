@@ -26,7 +26,7 @@
   {name:'Umbria',cities:['Perugia']},
   {name:'Valle d\'Aosta',cities:['Aosta']}
 
-];;
+];
   var streets = ['Via Roma','Via Garibaldi','Corso Italia','Via Dante','Via Galileo','Via Marconi','Viale dei Mille','Via Trento','Via Trieste','Via Bologna'];
   var companies = ['Italia Tech SRL','Mediterraneo SpA','Colosseo Media','Serenissima Logistics','Vesuvio Software','Adriatico Commerce'];
   var jobs = util.occupationPool('it');

@@ -21,7 +21,7 @@
   {name:'Mecklenburg-Vorpommern',cities:['Rostock','Schwerin','Neubrandenburg']},
   {name:'Saarland',cities:['Saarbruecken']},
   {name:'Schleswig-Holstein',cities:['Kiel','Luebeck','Flensburg']}
-];;
+];
   var streets = ['Hauptstrasse','Bahnhofstrasse','Schulstrasse','Gartenstrasse','Bergstrasse','Lindenstrasse','Waldstrasse','Ringstrasse','Kirchstrasse','Mozartstrasse'];
   var companies = ['Deutsche Tech GmbH','Rhein Handel AG','Berlin Logistik','Hansa Media','Bayerische Systems','Nord Software','Suder Logistics'];
   var jobs = util.occupationPool('de');

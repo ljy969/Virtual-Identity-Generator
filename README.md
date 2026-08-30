@@ -55,7 +55,7 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - **Age-aware generation** — birth dates, body metrics (height/weight), occupations, employers, and credit cards are all consistent with the generated age.
 - **Valid-structure identifiers** — Chinese ID cards use the real GB 11643-1999 (mod 11-2) checksum; card numbers pass the **Luhn** algorithm; SSN/NINO/My Number/Steuer-ID/NIR/Codice Fiscale/DNI follow their respective format conventions (all demo/illustrative).
 - **Flexible controls** — gender, age mode (random / exact / range), email domain (random per country / popular webmail / custom), card network, and batch count (1/3/5/10).
-- **Copy All** (Clipboard API with an `execCommand` fallback) and **Export CSV** (UTF-8 BOM, RFC-style quoting/escaping) for quick reuse in tests and demos.
+- **Copy All** (Clipboard API with a manual-copy prompt on unsupported browsers) and **Export CSV** (UTF-8 BOM, RFC-style quoting/escaping) for quick reuse in tests and demos.
 - **Extended profiles** — education, major, school (with country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
 - **Country-specific security QA & signatures** — each of the 9 supported countries has its own pool of 15 culturally-appropriate question/answer pairs and 15 culturally-appropriate online signatures in `PROFILE.securityQAByCountry` and `PROFILE.signaturesByCountry` (see `assets/js/data/profile.js`). For instance, a **Japanese** identity receives questions like _"母の旧姓は何ですか？"_ → _"田中"_, while a **US** identity receives _"What is your mother's maiden name?"_ → _"Smith"_. Every pair is translated into both Chinese and English for UI display; countries whose native language is neither Chinese nor English (Japan, Germany, France, Italy, Spain) also retain a **native-language version** (e.g., Japanese, German, French, Italian, Spanish) as a fallback. The pre-existing generic `securityQA` pool (8 pairs) is kept as a last-resort fallback for any future country without dedicated QA data.
 - **Email domain validation** — custom email domains are validated against a strict allowlist at the engine layer (`util.isValidEmailDomain`), rejecting injection attempts and malformed domains; invalid input falls back to the country's default domain pool with a warning.
@@ -89,7 +89,7 @@ npx serve .
 | Feature | Minimum |
 | --- | --- |
 | Core generation | Any browser with ES5 + `Array`/`String` support |
-| Clipboard copy | `navigator.clipboard` (with `document.execCommand('copy')` fallback) |
+| Clipboard copy | `navigator.clipboard` (prompts user to copy manually if unavailable) |
 | Dark mode auto-detect | `window.matchMedia('(prefers-color-scheme: dark)')` |
 | Persistence | `localStorage` (gracefully degrades if blocked) |
 
@@ -192,7 +192,7 @@ All randomness is funneled through `util` helpers so that generated records stay
 
 ### Birth Date & Age
 
-- `ageMode = random` → birth date uniformly sampled between **1965** and **2004**.
+- `ageMode = random` → birth date uniformly sampled between **current year − 80** and **current year − 1** (producing ages 0–80, e.g. 1946–2025 for year 2026).
 - `ageMode = exact` → a birth date is chosen so that `util.ageFrom(date)` **exactly equals** the requested age (birthday is guaranteed to have already occurred this year).
 - `ageMode = range` → an age is drawn from the inclusive range (min/max auto-swapped if reversed), then the exact birth date is derived.
 - `util.ageFrom(date)` computes the current age with correct month/day handling.
@@ -230,7 +230,7 @@ The category **code** (`child` / `student` / `retired`) is stored and localized 
 
 - the card network is chosen from `opts.cardType` or picked at random;
 - the number is built from a valid IIN/BIN prefix and padded, then a **Luhn** check digit is appended (`util.luhnCheckDigit`);
-- expiry is `MM/YY` between 2025 and 2034; CVV length depends on the network (3 digits, 4 for American Express);
+- expiry is `MM/YY` between next year and 10 years ahead (e.g. 2026–2035 if the current year is 2025); CVV length depends on the network (3 digits, 4 for American Express);
 - display formatting follows network conventions (AmEx → `4-6-5`, others → `4-4-4-4`).
 
 ### Country-Specific Identifiers
@@ -267,7 +267,7 @@ Brand display names are localized through `i18n.card(key)`.
   - `data-i18n` → `textContent`
   - `data-i18n-ph` → `placeholder`
   - `data-i18n-title` → `title`
-  - `data-i18n-html` → `innerHTML` (used for the disclaimer)
+  - `data-i18n` → `textContent` (disclaimer and all other UI text use this; HTML entities are pre-encoded in the dictionary)
 - **Field & value localization:** `i18n.field(key)`, `i18n.gender(code)`, `i18n.occLabel(code)`, `i18n.card(key)`, and `i18n.countryLabel(code)` keep generated output consistent with the active language.
 - **Observer:** `i18n.onChange(cb)` lets the UI re-render on language switch without reload.
 
@@ -286,7 +286,7 @@ Brand display names are localized through `i18n.card(key)`.
 
 ## Copy & CSV Export
 
-- **Copy All** — builds a plain-text block of all generated records (localized to the active language) and writes it via `navigator.clipboard.writeText`, falling back to a hidden `<textarea>` + `document.execCommand('copy')` on unsupported browsers.
+- **Copy All** — builds a plain-text block of all generated records (localized to the active language) and writes it via `navigator.clipboard.writeText`, prompting the user to copy manually on unsupported browsers.
 - **Export CSV** — emits a UTF-8 file prefixed with a BOM (`﻿`) so Excel correctly recognizes Chinese; RFC-style quoting/escaping for fields containing commas, quotes, or newlines. Headers use localized field labels. **Formula-injection prefixes** (=, +, -, @, tab, newline, /, |) are neutralized by prepending a single quote.
 
 ---

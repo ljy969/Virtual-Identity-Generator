@@ -2055,10 +2055,6 @@
   /* 按语言/地区取得职业池 - 返回副本防止外部篡改 */
   FakeID.util.occupationPool = function (locale) {
     var pool = OCCUPATIONS[locale] || OCCUPATIONS['en'];
-    return pool.slice(); // 返回副本
-  };
-  FakeID.util.occupationPool = function (locale) {
-    var pool = OCCUPATIONS[locale] || OCCUPATIONS['en'];
     return pool.slice(); // 返回副本防止外部篡改
   };
 })(window);

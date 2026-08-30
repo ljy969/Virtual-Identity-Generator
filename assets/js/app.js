@@ -22,11 +22,6 @@
   var lastText = '';        // 最近一次生成的纯文本（用于复制，按当前语言）
   var lastCountryCode = null;
 
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
 
   // 信用卡类型下拉：根据 util.cardTypeKeys() 动态填充（与 i18n 双语显示名联动），
   // 新增卡组织只需在 util.js 的 cardTypes 中登记，无需改动此处与 index.html。
@@ -102,9 +97,10 @@
       
       // 如果选中的值是数组 [name, country]，取第一个元素（学校名/国家名）
       if (Array.isArray(selected)) {
-        return selected[0];
+        return selected[0] != null ? selected[0] : '';
       }
-      return selected;
+      // 防御：selected 仍为 null/unknown 时返回空字符串，避免 DOM 显示 'null'/'undefined'
+      return selected != null ? selected : '';
     }
     return value;
   }
@@ -337,6 +333,7 @@
       genOpts.emailDomain = emailSuffix;
     }
     var batches = [];
+    var genError = null;
     try {
       for (var i = 0; i < n; i++) {
         batches.push(FakeID.generate(code, genOpts));
@@ -344,13 +341,22 @@
     } catch (err) {
       // 任一条生成失败时，保留已成功生成的部分并提示错误，避免整页静默失败
       if (typeof console !== 'undefined' && console.error) console.error('[FakeID] 生成失败:', err);
-      flash(i18n.t('flash.generateFail') || ('生成失败: ' + (err && err.message ? err.message : err)));
-      if (!batches.length) return;
+      genError = err;
+      if (!batches.length) {
+        flash(i18n.t('flash.generateFail') || ('生成失败: ' + (err && err.message ? err.message : err)));
+        return;
+      }
     }
     lastBatches = batches;
     lastCountryCode = code;
     renderResults();
-    flash(i18n.t('flash.generated').replace('{n}', batches.length));
+    if (genError) {
+      // 部分成功：显示错误提示而非覆盖为"生成成功"
+      flash((i18n.t('flash.partialFail') || ('仅生成 ' + batches.length + ' 条，部分失败: ' +
+        (genError && genError.message ? genError.message : genError))));
+    } else {
+      flash(i18n.t('flash.generated').replace('{n}', batches.length));
+    }
   }
 
   // 按当前语言渲染结果（字段标签与性别/年龄类别职业值均本地化）

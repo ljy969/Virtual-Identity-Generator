@@ -55,7 +55,7 @@
 - **基于年龄的真实性生成** —— 出生日期、身高体重、职业、任职公司与信用卡均与所生成年龄保持内在一致。
 - **结构合法的证件号码** —— 中国身份证采用真实的 GB 11643-1999（模 11-2）校验算法；银行卡号通过 **Luhn** 校验；SSN/NINO/My Number/Steuer-ID/NIR/Codice Fiscale/DNI 均遵循各自的格式规范（均为示意数据）。
 - **灵活的控件** —— 性别、年龄模式（随机 / 指定 / 区间）、邮箱后缀（按国家随机 / 主流邮箱 / 自定义）、卡组织，以及批量数量（1/3/5/10 条）。
-- **复制全部**（Clipboard API，并带 `execCommand` 兼容回退）与 **导出 CSV**（带 UTF-8 BOM、符合 RFC 的引号/转义），便于在测试与演示中快速复用。
+- **复制全部**（Clipboard API，不支持时提示用户手动复制）与 **导出 CSV**（带 UTF-8 BOM、符合 RFC 的引号/转义），便于在测试与演示中快速复用。
 - **扩展档案** —— 学历、专业、学校（及学校所在国）、公司规模、收入等级、技能、兴趣、人格特征、宠物、喜好食物、旅行风格、外貌（发色/瞳色/肤色）、血型、体型、**安全问题与安全答案**、**在线签名**、时区与网站。
 - **国家专属安全问答与在线签名** —— 9 个支持国家/地区各拥有 15 条文化贴合的安全问题/答案和 15 条文化贴合的在线签名，存储于 `PROFILE.securityQAByCountry` 和 `PROFILE.signaturesByCountry`（见 `assets/js/data/profile.js`）。例如，**日本** 身份将获得如 _"母の旧姓は何ですか？"_ → _"田中"_ 的问答，而 **美国** 身份则获得 _"What is your mother's maiden name?"_ → _"Smith"_。每组问答均提供中、英双语版本供界面显示；对于母语非中、非英的国家（日本、德国、法国、意大利、西班牙），还额外保留**母语版本**（如日语、德语、法语、意语、西语）作为回退。此前的通用 `securityQA` 池（8 条）仍作为兜底回退，供未来新增国家使用。
 - **邮箱域名白名单校验** —— 自定义邮箱域名在引擎层（`util.isValidEmailDomain`）按严格白名单校验（仅允许 ASCII 字母/数字/点/连字符、至少含一个点分隔顶级域、长度 ≤253），拒绝注入与非法格式；非法输入回退到国家默认域名池并给出警告。
@@ -89,7 +89,7 @@ npx serve .
 | 功能 | 最低要求 |
 | --- | --- |
 | 核心生成 | 支持 ES5 及 `Array`/`String` 的任意浏览器 |
-| 复制 | `navigator.clipboard`（带 `document.execCommand('copy')` 回退） |
+| 复制 | `navigator.clipboard`（不支持时提示用户手动复制） |
 | 深色模式自动探测 | `window.matchMedia('(prefers-color-scheme: dark)')` |
 | 偏好持久化 | `localStorage`（被禁用时优雅降级） |
 
@@ -192,7 +192,7 @@ npx serve .
 
 ### 出生日期与年龄
 
-- `ageMode = random`（随机）→ 出生日期在 **1965** 至 **2004** 年间均匀采样。
+- `ageMode = random`（随机）→ 出生日期在 **（当前年-80）** 至 **（当前年-1）** 年间均匀采样（产生 0-80 岁年龄，如当前年为 2026 则为 1946-2025）。
 - `ageMode = exact`（指定）→ 选取使 `util.ageFrom(date)` **精确等于**目标年龄的出生日期（保证今年生日已过）。
 - `ageMode = range`（区间）→ 先在闭区间内抽取年龄（若 min/max 颠倒则自动交换），再反推精确出生日期。
 - `util.ageFrom(date)` 以正确的月/日逻辑计算当前年龄。
@@ -230,7 +230,7 @@ npx serve .
 
 - 卡组织由 `opts.cardType` 指定，或随机选取；
 - 卡号由合法的 IIN/BIN 前缀填充至长度后，追加 **Luhn** 校验位（`util.luhnCheckDigit`）；
-- 有效期为 2025–2034 年间的 `MM/YY`；安全码位数依卡组织而定（3 位，美国运通为 4 位）；
+- 有效期为次年至未来 10 年内的 `MM/YY`（如当前年为 2025 则为 2026–2035）；安全码位数依卡组织而定（3 位，美国运通为 4 位）；
 - 展示格式遵循各卡组织规范（运通为 `4-6-5`，其余为 `4-4-4-4`）。
 
 ### 各国专属证件
@@ -267,7 +267,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
   - `data-i18n` → `textContent`
   - `data-i18n-ph` → `placeholder`
   - `data-i18n-title` → `title`
-  - `data-i18n-html` → `innerHTML`（用于免责声明）
+  - `data-i18n` → `textContent`（免责声明及所有界面文本均使用此方式；字典中已预编码 HTML 实体）
 - **字段与取值本地化：** `i18n.field(key)`、`i18n.gender(code)`、`i18n.occLabel(code)`、`i18n.card(key)`、`i18n.countryLabel(code)` 保证生成结果与当前语言一致。
 - **观察者：** `i18n.onChange(cb)` 允许界面在切换语言时无刷新重新渲染。
 
@@ -286,7 +286,7 @@ Visa、Visa Electron、Mastercard、美国运通（American Express）、Discove
 
 ## 复制与 CSV 导出
 
-- **复制全部** —— 将全部生成记录（按当前语言本地化）拼接为纯文本块，通过 `navigator.clipboard.writeText` 写入剪贴板；在不支持的浏览器中回退到隐藏 `<textarea>` + `document.execCommand('copy')`。
+- **复制全部** —— 将全部生成记录（按当前语言本地化）拼接为纯文本块，通过 `navigator.clipboard.writeText` 写入剪贴板；在不支持的浏览器中提示用户手动复制。
 - **导出 CSV** —— 输出以 BOM（`﻿`）开头的 UTF-8 文件，确保 Excel 正确识别中文；对含逗号、引号或换行的字段进行符合 RFC 的引号/转义处理。表头使用本地化后的字段标签。**公式注入前缀**（`=`、`+`、`-`、`@`、制表符、换行符、`/`、`|`）通过前置单引号中和。
 
 ---

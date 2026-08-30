@@ -9,7 +9,7 @@
   {name:'Scotland',cities:['Glasgow','Edinburgh','Aberdeen','Dundee','Inverness']},
   {name:'Wales',cities:['Cardiff','Swansea','Newport','Bangor']},
   {name:'Northern Ireland',cities:['Belfast','Londonderry','Lisburn']}
-];;
+];
   var streets = ['High St','Church Rd','Station Rd','Main St','Park Ave','Victoria Rd','Green Lane','Kings Rd','North St','Mill Lane'];
   var companies = ['Britannia Ltd','Thames Consulting','Albion Group','Crown Retail','Union Logistics','Empire Media','Royal Tech','Saxons Inc'];
   var jobs = util.occupationPool('en');

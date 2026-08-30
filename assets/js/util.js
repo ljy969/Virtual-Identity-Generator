@@ -221,7 +221,9 @@ var util = (function (global) {
       if (max < min) { var t = min; min = max; max = t; }
       return util.birthDateForAge(util.randInt(min, max));
     }
-    return util.randomDate(1965, 2004);
+    var _now = new Date();
+    var _curYear = _now.getFullYear();
+    return util.randomDate(_curYear - 80, _curYear - 1); // 动态范围: 1-80 岁
   };
   /* 身高/体重（按性别与年龄给出合理数值，避免“婴幼儿拥有成人身材”这类不符）。
    * 以成年参考身高为基准，按年龄的成长系数缩放；体重以身高推算 BMI 估算。
@@ -468,7 +470,7 @@ var util = (function (global) {
     cfg.domains = cfg.domains || ['example.com'];
     var rc = resolveRegionCity(cfg.regions, opts);
     var region = rc.region, city = rc.city;
-    var gender = opts.gender === 'random' ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
+    var gender = (!opts.gender || opts.gender === 'random') ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
     var first = util.pick(gender === 'male' ? cfg.givenMale : cfg.givenFemale);
     var last = util.pick(cfg.surnames);
     var bdate = util.birthDate(opts);
@@ -672,18 +674,19 @@ var util = (function (global) {
     opts = opts || {};
     ctx = ctx || {};
     var P = (FakeID.profile && FakeID.profile.pools) || {};
-    var lang = (FakeID.i18n && FakeID.i18n.lang && FakeID.i18n.lang() === 'en') ? 'en' : 'zh';
     var zhPool = P['zh'];
     var enPool = P['en'];
     if (!zhPool || !enPool) return [];
-    var pick = util.pick, sepListZh = '、', sepListEn = ', ', out = [];
+    var pick = util.pick, out = [];
 
     // 从两个语言池中按相同索引取值，返回双语对象 {zh, en}
     // 普通字段（非学校类）使用 zhPool/enPool 直接按索引对应
     function pickBoth(poolKey) {
       var zhArr = zhPool[poolKey] || [], enArr = enPool[poolKey] || [];
       if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
-      var idx = util.randInt(0, zhArr.length - 1);
+      // 防御：使用最小长度作为索引上限，防止 zh/en 长度不一致时 enArr[idx] 越界返回 undefined
+      var safeLen = Math.min(zhArr.length, enArr.length);
+      var idx = util.randInt(0, safeLen - 1);
       var zhVal = zhArr[idx], enVal = enArr[idx];
       // securityQA 的元素是数组 [问题, 答案]，保留完整数组供调用方解包
       // 其它池元素为字符串，直接返回
@@ -698,13 +701,6 @@ var util = (function (global) {
         zh: util.pickSome(zhArr.slice(), n, '、'),
         en: util.pickSome(enArr.slice(), n, ', ')
       };
-    }
-    function pickBothBand(arrKey, band) {
-      var zhArr = (zhPool[arrKey] && zhPool[arrKey][band]) || zhPool[arrKey] || [];
-      var enArr = (enPool[arrKey] && enPool[arrKey][band]) || enPool[arrKey] || [];
-      if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
-      var idx = util.randInt(0, zhArr.length - 1);
-      return { zh: zhArr[idx], en: enArr[idx] };
     }
 
     // 安全问题 / 答案（按国家细分，保证问答内容与所生身份的国家相符）
@@ -781,8 +777,10 @@ var util = (function (global) {
       germany: 'de', france: 'fr', italy: 'it', spain: 'es', canada: 'en'
     };
     
-    // 从扁平学校池中选取：数组元素为 [zhName, countryName, nativeName] 或 [enName, countryName, nativeName]
+    // 从扁平学校池中选取：数组元素为 [localName, countryName, nativeName]
     // 返回 { native: [schoolName, countryName], zh: [schoolName, countryName], en: [schoolName, countryName], nativeLang: 'ja' }
+    // 修复：不再使用相同索引同时访问 zh/en 两个数组（它们内容排序不同导致错位）；
+    // 改为从单个 base 数组选取一条 entry，Derive 所有语言版本自其中。
     function pickSchoolByCountry(poolName) {
       var countryCode = ctx.countryCode || 'china';
       var nativeLang = COUNTRY_NATIVE_LANG[countryCode] || 'en';
@@ -790,32 +788,28 @@ var util = (function (global) {
       var zhArr = zhPool[poolName] || [];
       var enArr = enPool[poolName] || [];
       
-      // 使用两个数组的最小长度作为边界，防止越界
-      var maxLen = Math.min(zhArr.length, enArr.length);
-      if (maxLen === 0) {
-        // 回退：任一数组有数据则用其长度
-        maxLen = Math.max(zhArr.length, enArr.length);
-      }
-      if (maxLen === 0) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
-      
-      // 选择基础数组：优先使用 nativeLang 对应的数组
+      // 选择基础数组：优先使用 nativeLang 对应的数组，然后回退
       var baseArr = (nativeLang === 'zh') ? zhArr : enArr;
-      if (!baseArr.length) baseArr = (nativeLang === 'zh') ? enArr : zhArr;
+      if (!baseArr.length) baseArr = (nativeLang === 'zh') ? (enArr.length ? enArr : zhArr) : (zhArr.length ? zhArr : enArr);
+      if (!baseArr.length) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
       
-      var idx = util.randInt(0, maxLen - 1);
+      // 单次选取：仅从 base 数组下标获取，避免 zh/en 数组按相同索引导致学校错位
+      var idx = util.randInt(0, baseArr.length - 1);
       var baseEntry = baseArr[idx];
       
-      // 安全获取各语言值，防止越界
-      var zhName = (zhArr[idx] && zhArr[idx][0]) || baseEntry[0] || '';
-      var enName = (enArr[idx] && enArr[idx][0]) || baseEntry[0] || '';
-      var nativeName = baseEntry[2] || baseEntry[0] || '';
-      var countryName = baseEntry[1] || '';
+      // 每条 entry 结构：[localName, countryName, nativeName]
+      // nativeName (第3元素) 是该校在其母国语言中的名称
+      var localName = (baseEntry && baseEntry[0]) || '';
+      var countryName = (baseEntry && baseEntry[1]) || '';
+      var nativeName = (baseEntry && baseEntry[2]) || localName || '';
       
       var result = {};
-      result.zh = [zhName, countryName];
-      result.en = [enName, countryName];
+      // 原生语言优先使用 entry 中的 nativeName（与学校所在国家保持一致）
       result[nativeLang] = [nativeName, countryName];
       result.nativeLang = nativeLang;
+      // 其他语言：无法跨数组安全查找翻译时，使用 nativeName 作为回退（保证一致性）
+      result.zh = (nativeLang === 'zh') ? [localName, countryName] : [nativeName, countryName];
+      result.en = (nativeLang === 'en') ? [localName, countryName] : [nativeName, countryName];
       return result;
     }
 
@@ -831,7 +825,9 @@ var util = (function (global) {
       var zhArr = countryPool.zh || [];
       var enArr = countryPool.en || [];
       if (!zhArr.length || !enArr.length) return pickBoth('schoolTypes');
-      var idx = util.randInt(0, zhArr.length - 1);
+      // 防御：使用最小长度防止 enArr[idx] 越界返回 undefined
+      var safeLen = Math.min(zhArr.length, enArr.length);
+      var idx = util.randInt(0, safeLen - 1);
       return { zh: zhArr[idx], en: enArr[idx] };
     }
 
@@ -979,6 +975,8 @@ var util = (function (global) {
 
   /* 并行数组完整性自检：校验 profile.js 中 zh/en 数组同键长度一致 */
   util.validateParallelArrays = function (zhPool, enPool, poolKeys) {
+    // 'educations' is validated for length parity but currently set via hardcoded age-band values in profileFields;
+    // this check guards against future zh/en drift if it is ever wired to pickBoth.
     poolKeys = poolKeys || ['schools','kindergartens','primarySchools','middleSchools','highSchools','majors','educations','schoolTypes','countries','incomeLevels','companySizes','personalities','pets','favoriteFoods','travelStyles','hairColors','eyeColors','skinTones','bloodTypes','bodyTypes','signatures'];
     var mismatches = [];
     for (var i = 0; i < poolKeys.length; i++) {

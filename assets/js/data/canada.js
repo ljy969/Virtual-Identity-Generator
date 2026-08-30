@@ -18,7 +18,7 @@
   {name:'Northwest Territories',abbr:'NT',cities:['Yellowknife']},
   {name:'Yukon',abbr:'YT',cities:['Whitehorse']},
   {name:'Nunavut',abbr:'NU',cities:['Iqaluit']}
-];;
+];
   var streets = ['King St','Queen St','Main St','Maple Ave','Elm St','Park Rd','Church St','Lake Rd','Hillcrest Ave','Victoria Ave'];
   var companies = ['Maple Tech Inc','Rocher Commerce','Grand Nord Logistics','Canoe Media','Laurentian Systems','Pacific Software'];
   var jobs = util.occupationPool('en');

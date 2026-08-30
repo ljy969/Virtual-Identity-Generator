@@ -25,7 +25,7 @@
   {name:'Ceuta',cities:['Ceuta']},
   {name:'Melilla',cities:['Melilla']}
 
-];;
+];
   var streets = ['Calle Mayor','Avenida de la Constitucion','Calle de Alcala','Paseo de la Castellana','Calle del Sol','Gran Via','Calle de San Miguel','Avenida del Parque','Calle Lopez','Calle Real'];
   var companies = ['Iberia Tech SL','Castellana Comercio','Sol Logistics','Hispania Media','Cervantes Software','Mediterraneo Systems'];
   var jobs = util.occupationPool('es');

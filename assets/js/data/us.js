@@ -61,7 +61,7 @@
   {name:'Wisconsin',abbr:'WI',zip:'53',cities:['Milwaukee','Madison','Green Bay','Kenosha']},
   {name:'Wyoming',abbr:'WY',zip:'82',cities:['Cheyenne','Casper','Laramie']},
   {name:'District of Columbia',abbr:'DC',zip:'20',cities:['Washington']}
-];;
+];
   function ssn() {
     // SSN 区号：排除 000, 666, 900-999
     // 使用拒绝采样保证均匀分布

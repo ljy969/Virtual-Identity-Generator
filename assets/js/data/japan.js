@@ -53,7 +53,7 @@
   {name:'Miyazaki',cities:['Miyazaki']},
   {name:'Kagoshima',cities:['Kagoshima']}
 
-];;
+];
   var companies = ['Sakura Corp','Tokyo Tech KK','Nihon Systems','Yamato Logistics','Mizuho Digital','Asahi Media','Kobe Trading','Sora Networks'];
   var jobs = util.occupationPool('ja');
   function myNumber() {
