@@ -26,17 +26,20 @@
   var companies = ['Deutsche Tech GmbH','Rhein Handel AG','Berlin Logistik','Hansa Media','Bayerische Systems','Nord Software','Suder Logistics'];
   var jobs = util.occupationPool('de');
   function steuerId() {
-    // 德国 Steuer-ID (11位，含校验位) - ISO 7064 Mod 11,10 算法
-    // 权重从右往左：2,3,4,5,6,7,8,9,10,2,3... (循环)
-    // 校验位 = (11 - (加权和 % 11)) % 10，若结果为10则校验位为0
-    var body = util.pad(util.randInt(0, 9999999999), 10); // 前10位
-    var weights = [3, 2, 10, 9, 8, 7, 6, 5, 4, 3]; // 从左往右对应 body[0]..body[9] (即从右往左 2,3,4,5,6,7,8,9,10,2)
-    var sum = 0;
-    for (var i = 0; i < 10; i++) {
-      sum += parseInt(body.charAt(i), 10) * weights[i];
+    // 德国 Steuer-ID (IdNr, 11位)：前10位为本体，第11位为校验位
+    // 官方算法为 ISO 7064 MOD 11,10 递归式（并非固定权重线性式）：
+    //   p = 10; 对本体每位 d: s = (p + d) % 10; s===0 时 s=10; p = (s * 2) % 11;
+    //   校验位 = (11 - p) % 10
+    // 另：真实 IdNr 首位不为 0，这里限定本体首位 >= 1
+    var body = String(util.randInt(1000000000, 9999999999)); // 10位且首位非0
+    var p = 10;
+    for (var i = 0; i < body.length; i++) {
+      var d = parseInt(body.charAt(i), 10);
+      var s = (p + d) % 10;
+      if (s === 0) s = 10;
+      p = (s * 2) % 11;
     }
-    var check = (11 - (sum % 11)) % 10;
-    if (check === 10) check = 0;
+    var check = (11 - p) % 10;
     var full = body + check;
     return full.slice(0, 2) + ' ' + full.slice(2, 5) + ' ' + full.slice(5, 8) + ' ' + full.slice(8, 11);
   }

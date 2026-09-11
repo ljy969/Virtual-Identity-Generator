@@ -320,7 +320,10 @@ var util = (function (global) {
   };
 
   util.password = function (len) {
-    len = len || 10;
+    // 防御：len 非法（0/负数/非数字）时回退默认 10，并钳制到 [1, 128]
+    len = parseInt(len, 10);
+    if (isNaN(len) || len <= 0) len = 10;
+    if (len > 128) len = 128;
     var all = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*';
     var out = '';
     for (var i = 0; i < len; i++) out += all.charAt(util.randInt(0, all.length - 1));
@@ -470,7 +473,13 @@ var util = (function (global) {
     cfg.domains = cfg.domains || ['example.com'];
     var rc = resolveRegionCity(cfg.regions, opts);
     var region = rc.region, city = rc.city;
-    var gender = (!opts.gender || opts.gender === 'random') ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
+    // 性别归一化：空/'random'/未知值（含大小写、拼写错误）一律随机，避免非 male/female 值外泄到字段
+    var gender;
+    if (!opts.gender) gender = util.chance(0.5) ? 'male' : 'female';
+    else if (String(opts.gender).toLowerCase() === 'random') gender = util.chance(0.5) ? 'male' : 'female';
+    else if (String(opts.gender).toLowerCase() === 'male') gender = 'male';
+    else if (String(opts.gender).toLowerCase() === 'female') gender = 'female';
+    else gender = util.chance(0.5) ? 'male' : 'female';
     var first = util.pick(gender === 'male' ? cfg.givenMale : cfg.givenFemale);
     var last = util.pick(cfg.surnames);
     var bdate = util.birthDate(opts);
@@ -592,7 +601,13 @@ var util = (function (global) {
     var key = (!opts.cardType || opts.cardType === 'random')
       ? util.pick(util.cardTypeKeys())
       : opts.cardType;
-    var t = util.cardTypes[key] || util.cardTypes[util.pick(util.cardTypeKeys())];
+    // 修复：cardType 无效回退到随机类型时，必须同步更新 key，
+    // 否则返回的 key 仍是无效输入（'notacard'），渲染层按 key 找不到类型会显示异常
+    var t = util.cardTypes[key];
+    if (!t) {
+      key = util.pick(util.cardTypeKeys());
+      t = util.cardTypes[key];
+    }
     var prefix = util.pick(t.prefixes);
     // 防御：前缀长度必须 < 卡号长度，否则截断，避免生成超长/非法卡号
     var maxBodyLen = Math.max(1, t.len - 1);
@@ -696,11 +711,24 @@ var util = (function (global) {
       var zhArr = (zhPool[arrKey] && zhPool[arrKey][band]) || zhPool[arrKey] || [];
       var enArr = (enPool[arrKey] && enPool[arrKey][band]) || enPool[arrKey] || [];
       if (!zhArr.length || !enArr.length) return { zh: '', en: '' };
-      // util.pickSome 可能会修改数组，使用副本
-      return {
-        zh: util.pickSome(zhArr.slice(), n, '、'),
-        en: util.pickSome(enArr.slice(), n, ', ')
-      };
+      // 修复：中英两种语言必须共享同一组随机下标，否则 zh/en 各自独立抽取，
+      // 生成结果指向不同条目（如中文显示"绘画"而英文显示"Swimming"，语义错位）。
+      // 防御：使用最小长度作为下标上限，防止两池长度不一致时越界
+      var safeLen = Math.min(zhArr.length, enArr.length);
+      // 从 0..safeLen-1 抽取 n 个互不重复下标（若不足 n 个则全部取出）
+      var idxPool = [];
+      for (var i = 0; i < safeLen; i++) idxPool.push(i);
+      var picked = [];
+      while (picked.length < n && idxPool.length) {
+        picked.push(idxPool.splice(util.randInt(0, idxPool.length - 1), 1)[0]);
+      }
+      picked.sort(function (a, b) { return a - b; }); // 保持池内自然顺序，输出更稳定
+      var zhItems = [], enItems = [];
+      for (var j = 0; j < picked.length; j++) {
+        zhItems.push(zhArr[picked[j]]);
+        enItems.push(enArr[picked[j]]);
+      }
+      return { zh: zhItems.join('、'), en: enItems.join(', ') };
     }
 
     // 安全问题 / 答案（按国家细分，保证问答内容与所生身份的国家相符）
@@ -776,38 +804,50 @@ var util = (function (global) {
       china: 'zh', us: 'en', japan: 'ja', uk: 'en',
       germany: 'de', france: 'fr', italy: 'it', spain: 'es', canada: 'en'
     };
+    // 国家代码 -> 英文国家名（与统一学校池 countryEn 字段对齐，用于按国家过滤学校）
+    var COUNTRY_EN_NAME = {
+      china: 'China', us: 'United States', japan: 'Japan', uk: 'United Kingdom',
+      germany: 'Germany', france: 'France', italy: 'Italy', spain: 'Spain', canada: 'Canada'
+    };
     
-    // 从扁平学校池中选取：数组元素为 [localName, countryName, nativeName]
-    // 返回 { native: [schoolName, countryName], zh: [schoolName, countryName], en: [schoolName, countryName], nativeLang: 'ja' }
-    // 修复：不再使用相同索引同时访问 zh/en 两个数组（它们内容排序不同导致错位）；
-    // 改为从单个 base 数组选取一条 entry，Derive 所有语言版本自其中。
+    // 从统一学校池（profile.js schoolsUnified / xxxUnified）中按国家筛选后随机选取。
+    // 统一池每条 entry：{ zh, en, native, nativeLang, countryZh, countryEn }
+    // 返回结构：{ zh: [schoolName, countryName], en: [...], native: [...], nativeLang: 'xx' }
+    // 各语言槽位均为该语言自己的本地化文本（不再回填原文名），彻底消除并行数组错位。
     function pickSchoolByCountry(poolName) {
       var countryCode = ctx.countryCode || 'china';
       var nativeLang = COUNTRY_NATIVE_LANG[countryCode] || 'en';
-      
+      var PRO = FakeID.profile || {};
+      // 统一池键名约定：schools -> schoolsUnified, kindergartens -> kindergartensUnified, ...
+      var unifiedKey = poolName + 'Unified';
+      var unified = PRO[unifiedKey];
+      if (unified && unified.length) {
+        // 按国家过滤（countryEn 匹配注册国家），无匹配时回退全池
+        var countryEnName = COUNTRY_EN_NAME[countryCode] || '';
+        var filtered = unified.filter(function (e) { return !countryEnName || e.countryEn === countryEnName; });
+        var arr = filtered.length ? filtered : unified;
+        var entry = arr[util.randInt(0, arr.length - 1)];
+        return {
+          zh: [entry.zh, entry.countryZh],
+          en: [entry.en, entry.countryEn],
+          native: [entry.native, entry.countryEn],
+          nativeLang: entry.nativeLang
+        };
+      }
+      // 回退：旧并行数组结构（统一池缺失时）。从单一基础数组选条目，避免 zh/en 下标错位。
       var zhArr = zhPool[poolName] || [];
       var enArr = enPool[poolName] || [];
-      
-      // 选择基础数组：优先使用 nativeLang 对应的数组，然后回退
       var baseArr = (nativeLang === 'zh') ? zhArr : enArr;
       if (!baseArr.length) baseArr = (nativeLang === 'zh') ? (enArr.length ? enArr : zhArr) : (zhArr.length ? zhArr : enArr);
       if (!baseArr.length) return { native: ['', ''], zh: ['', ''], en: ['', ''], nativeLang: nativeLang };
-      
-      // 单次选取：仅从 base 数组下标获取，避免 zh/en 数组按相同索引导致学校错位
       var idx = util.randInt(0, baseArr.length - 1);
       var baseEntry = baseArr[idx];
-      
-      // 每条 entry 结构：[localName, countryName, nativeName]
-      // nativeName (第3元素) 是该校在其母国语言中的名称
       var localName = (baseEntry && baseEntry[0]) || '';
       var countryName = (baseEntry && baseEntry[1]) || '';
       var nativeName = (baseEntry && baseEntry[2]) || localName || '';
-      
       var result = {};
-      // 原生语言优先使用 entry 中的 nativeName（与学校所在国家保持一致）
       result[nativeLang] = [nativeName, countryName];
       result.nativeLang = nativeLang;
-      // 其他语言：无法跨数组安全查找翻译时，使用 nativeName 作为回退（保证一致性）
       result.zh = (nativeLang === 'zh') ? [localName, countryName] : [nativeName, countryName];
       result.en = (nativeLang === 'en') ? [localName, countryName] : [nativeName, countryName];
       return result;
@@ -868,12 +908,16 @@ var util = (function (global) {
       schoolTypeVal = pickSchoolTypeByCountry();
       majorVal = pickBoth('majors');
     } else if (ageNum < 65) {
-      edu = { zh: pick(['本科', '硕士', '博士']), en: pick(['Bachelor', 'Master', 'PhD']) };
+      // 修复：中英学历必须同一下标映射，避免独立两次抽取造成语义错位（如 zh=博士 en=Associate）
+      var eduLevelIdx = util.randInt(0, 2);
+      edu = { zh: ['本科', '硕士', '博士'][eduLevelIdx], en: ['Bachelor', 'Master', 'PhD'][eduLevelIdx] };
       schoolPair = pickSchoolByCountry('schools');
       schoolTypeVal = pickSchoolTypeByCountry();
       majorVal = pickBoth('majors');
     } else {
-      edu = { zh: pick(['大专', '本科', '硕士']), en: pick(['Associate', 'Bachelor', 'Master']) };
+      // 同上：同一下标映射，保证双语语义一致
+      var eduSeniorIdx = util.randInt(0, 2);
+      edu = { zh: ['大专', '本科', '硕士'][eduSeniorIdx], en: ['Associate', 'Bachelor', 'Master'][eduSeniorIdx] };
       schoolPair = pickSchoolByCountry('schools');
       schoolTypeVal = pickSchoolTypeByCountry();
       majorVal = pickBoth('majors');

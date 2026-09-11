@@ -59,14 +59,16 @@
   function myNumber() {
     // 日本个人番号 (My Number) 12位，第12位为校验位
     // 校验算法：从右往左第2位开始，权重 2,3,4,5,6,7,2,3,4,5,6
-    // 校验位 = (11 - (加权和 % 11)) % 10
+    // 官方规则：加权和 % 11 <= 1 时校验位为 0，否则为 (11 - 加权和 % 11) % 10
+    // （旧实现 (11-sum%11)%10 在 sum%11===0 时会给出 1 而非 0）
     var body = util.pad(util.randInt(0, 99999999999), 11); // 前11位
     var weights = [2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6]; // 从右往左对应 body[10]..body[0]
     var sum = 0;
     for (var i = 0; i < 11; i++) {
       sum += parseInt(body.charAt(10 - i), 10) * weights[i];
     }
-    var check = (11 - (sum % 11)) % 10;
+    var rem = sum % 11;
+    var check = (rem <= 1) ? 0 : (11 - rem) % 10;
     return body + check;
   }
   FakeID.registerCountry('japan', {
@@ -86,7 +88,8 @@
           var city = ctx.city ? (typeof ctx.city === 'string' ? ctx.city : ctx.city.name) : '';
           return ctx.region.name + city + u.randInt(1, 99) + '-' + u.randInt(1, 99);
         },
-        zipFn: function (u) { return u.pad(u.randInt(0, 9999999), 7).slice(0,3) + '-' + u.pad(u.randInt(0, 9999), 4); },
+        // 日本邮编：前3位不以 0 开头（官方邮编首位非零），后4位允许任意含 0
+        zipFn: function (u) { return u.randInt(100, 999) + '-' + u.pad(u.randInt(0, 9999), 4); },
         companies: companies, jobs: jobs, locale: 'ja'
       };
       return util.buildWestern(cfg, opts);

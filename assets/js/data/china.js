@@ -208,7 +208,10 @@
     regions: regions,
     make: function (opts) {
       opts = opts || {};
-      var gender = (!opts.gender || opts.gender === 'random') ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
+      // 性别归一化：空/'random'/大小写/未知值一律随机，与 util.buildWestern 行为一致
+      var g0 = opts.gender ? String(opts.gender).toLowerCase() : '';
+      if (!g0 || g0 === 'random' || (g0 !== 'male' && g0 !== 'female')) g0 = util.chance(0.5) ? 'male' : 'female';
+      var gender = g0;
       var given = gender === 'male' ? givenMale : givenFemale;
       var givenCount = util.chance(0.6) ? 2 : 1;
       var surname = util.pick(surnames);

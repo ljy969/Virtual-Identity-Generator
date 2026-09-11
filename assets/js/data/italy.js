@@ -61,7 +61,8 @@
     // ZZZZ: 出生地编码 (4字符)
     // X: 校验字符
     var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    var months = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, 12);
+    // 官方月份字母表（1-12月依次为 A B C D E H L M P R S T；跳过未使用的 F G I N O Q 等字母）
+    var months = 'ABCDEHLMPRST';
     var cadastralCodes = ['H501','F205','D612','L219','M261','B354','A944','C351','E815','G273'];
     var gender = ctx && ctx.gender ? ctx.gender : (util.chance(0.5) ? 'male' : 'female');
     var bdate = ctx && ctx.bdate ? ctx.bdate : util.randomDate(1965, 2004);

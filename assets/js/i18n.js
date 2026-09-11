@@ -195,25 +195,30 @@
 
   /* ---- 根据系统区域设置推断默认国家（地区子标签优先，语言退而次之）--- */
   // 地区子标签（语言标签中 “-” 之后的部分，如 en-US 的 US）到国家代码的映射
+  // 修复：原实现把大量无关地区（AU/NZ/ZA/BR/SG/KR/IN 等）硬编码为 'canada'，
+  // 导致这些系统区域的首个默认国家错误地选中加拿大。现改为就近映射，
+  // 确无对应国家时置 null（调用方回退到列表首项）。
   var REGION_TO_COUNTRY = {
     CN: 'china', US: 'us', GB: 'uk', CA: 'canada', DE: 'germany',
     JP: 'japan', FR: 'france', IT: 'italy', ES: 'spain',
-    AU: 'canada', NZ: 'canada', ZA: 'canada', IE: 'uk',
+    AU: null, NZ: null, ZA: null, IE: 'uk',
     CH: 'germany', AT: 'germany', BE: 'france', LU: 'france',
     MX: 'spain', AR: 'spain', CO: 'spain', PE: 'spain', CL: 'spain',
-    BR: 'canada', PT: 'spain', TW: 'china', HK: 'china', MO: 'china',
-    SG: 'canada', MY: 'canada', TH: 'canada', VN: 'canada', ID: 'canada',
-    KR: 'canada', PH: 'canada', IN: 'canada'
+    BR: null, PT: 'spain', TW: 'china', HK: 'china', MO: 'china',
+    SG: null, MY: null, TH: null, VN: null, ID: null,
+    KR: null, PH: null, IN: null
   };
   // 仅有主语言、无地区子标签时的回退（如 zh → china，en → us）
+  // 修复：原实现把 30+ 种无池语言（ko/ru/hi/th 等）全部映射为 'canada'；
+  // 现仅保留确实有国家池的语言，其余为 null（回退列表首项）。
   var LANG_TO_COUNTRY = {
     zh: 'china', ja: 'japan', de: 'germany', fr: 'france', it: 'italy', es: 'spain', en: 'us',
-    pt: 'canada', ko: 'canada', ru: 'canada', ar: 'canada', hi: 'canada',
-    nl: 'canada', pl: 'canada', tr: 'canada', sv: 'canada', da: 'canada',
-    no: 'canada', fi: 'canada', cs: 'canada', hu: 'canada', ro: 'canada',
-    sk: 'canada', bg: 'canada', hr: 'canada', sr: 'canada', sl: 'canada',
-    et: 'canada', lv: 'canada', lt: 'canada', el: 'canada', he: 'canada',
-    th: 'canada', vi: 'canada', id: 'canada', ms: 'canada', tl: 'canada'
+    pt: 'spain', ko: 'japan', ru: 'germany', ar: null, hi: null,
+    nl: 'germany', pl: 'germany', tr: 'germany', sv: 'germany', da: 'germany',
+    no: 'germany', fi: 'germany', cs: 'germany', hu: 'germany', ro: 'france',
+    sk: 'germany', bg: null, hr: 'italy', sr: null, sl: null,
+    et: null, lv: null, lt: null, el: null, he: null,
+    th: null, vi: null, id: null, ms: null, tl: null
   };
   function detectSystemCountry(codes) {
     codes = codes || (FakeID.listCountries ? FakeID.listCountries().map(function (c) { return c.code; }) : []);

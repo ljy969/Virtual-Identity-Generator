@@ -32,10 +32,20 @@
     var sex = gender === 'male' ? 1 : 2;
     var yy = String(bdate.getFullYear()).slice(2);
     var mm = util.pad(bdate.getMonth() + 1, 2);
-    var dept = util.pad(util.randInt(1, 95), 2);
+    // 省份代码：20 未分配（1976 年起科西嘉拆分为 2A/2B），按官方规则采样
+    var dept;
+    if (util.chance(0.02)) {
+      dept = util.chance(0.5) ? '2A' : '2B'; // 科西嘉（20 号未分配）
+    } else {
+      // 目标集合 {01..19, 21..94}：共 93 个省份代码（20 未分配，2A/2B 上面单独处理）
+      var n = util.randInt(1, 93);
+      dept = util.pad(n <= 19 ? n : n + 1, 2);
+    }
     var commune = util.pad(util.randInt(1, 999), 3);
     var order = util.pad(util.randInt(1, 999), 3);
     var body = '' + sex + yy + mm + dept + commune + order;
+    // 计算校验键时，官方规定 Corse 的 2A 视作 "20"、2B 视作 "19"（INSEE 规则）
+    var bodyForCheck = (dept === '2A') ? (body.replace('2A', '20')) : (dept === '2B') ? (body.replace('2B', '19')) : body;
     // 使用字符串逐位取模避免大整数精度问题
     var mod97 = function (str) {
       var rem = 0;
@@ -44,7 +54,7 @@
       }
       return rem;
     };
-    var key = 97 - mod97(body);
+    var key = 97 - mod97(bodyForCheck);
     // 官方 NIR 校验键合法域为 01-97；body % 97 === 0 时 key=97（合法），移除错误的 99 特判
     return sex + yy + '-' + mm + '-' + dept + commune + '-' + order + '-' + util.pad(key, 2);
   }
@@ -54,7 +64,10 @@
     regions: regions,
     make: function (opts) {
       opts = opts || {};
-      var gender = opts.gender === 'random' ? (util.chance(0.5) ? 'male' : 'female') : opts.gender;
+      var g = opts.gender ? String(opts.gender).toLowerCase() : '';
+      if (!g || g === 'random') g = util.chance(0.5) ? 'male' : 'female';
+      if (g !== 'male' && g !== 'female') g = util.chance(0.5) ? 'male' : 'female';
+      var gender = g;
       var cfg = {
         regions: regions,
         surnames: surnames, givenMale: givenMale, givenFemale: givenFemale,

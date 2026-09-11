@@ -2291,7 +2291,378 @@
     ]
   };
 
-  FakeID.profile = { pools: PROFILE, timezones: TIMEZONES };
+  /* =====================================================================
+   * 统一学校池 schoolsUnified（修复并行数组错位问题的核心结构）
+   * ---------------------------------------------------------------------
+   * 背景：原 zh.schools / en.schools 为两个独立数组（69 条 vs 76 条），
+   *       同一下标在两池中指向不同学校，且长度不一致——既无法按下标 join，
+   *       也无法通过 nativeName 可靠对齐（存在重名/缺失翻译）。
+   * 方案：为每所学校显式登记全部语言版本 + 所属国家，彻底消除错位。
+   * 注意：kindergartens/primarySchools/middleSchools/highSchools 四个学段
+   *       池同步重构（见下），保证学校名与学校所在国家在所有语言下一一对应。
+   * ===================================================================== */
+  var schoolsUnified = [
+    // 中国（nativeLang: zh）
+    { zh: '北京大学', en: 'Peking University', native: '北京大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '清华大学', en: 'Tsinghua University', native: '清华大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '复旦大学', en: 'Fudan University', native: '复旦大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '上海交通大学', en: 'Shanghai Jiao Tong University', native: '上海交通大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '浙江大学', en: 'Zhejiang University', native: '浙江大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '南京大学', en: 'Nanjing University', native: '南京大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '武汉大学', en: 'Wuhan University', native: '武汉大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中山大学', en: 'Sun Yat-sen University', native: '中山大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '四川大学', en: 'Sichuan University', native: '四川大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '华中科技大学', en: 'Huazhong University of Science and Technology', native: '华中科技大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '西安交通大学', en: 'Xi\u2019an Jiaotong University', native: '西安交通大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '同济大学', en: 'Tongji University', native: '同济大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '北京师范大学', en: 'Beijing Normal University', native: '北京师范大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中国人民大学', en: 'Renmin University of China', native: '中国人民大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '哈尔滨工业大学', en: 'Harbin Institute of Technology', native: '哈尔滨工业大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中国传媒大学', en: 'Communication University of China', native: '中国传媒大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '上海财经大学', en: 'Shanghai University of Finance and Economics', native: '上海财经大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '北京外国语大学', en: 'Beijing Foreign Studies University', native: '北京外国语大学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    // 日本（nativeLang: ja）
+    { zh: '东京大学', en: 'University of Tokyo', native: '東京大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '京都大学', en: 'Kyoto University', native: '京都大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '大阪大学', en: 'Osaka University', native: '大阪大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '东北大学', en: 'Tohoku University', native: '東北大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '名古屋大学', en: 'Nagoya University', native: '名古屋大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '北海道大学', en: 'Hokkaido University', native: '北海道大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '九州大学', en: 'Kyushu University', native: '九州大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '筑波大学', en: 'University of Tsukuba', native: '筑波大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '神户大学', en: 'Kobe University', native: '神戸大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '早稻田大学', en: 'Waseda University', native: '早稲田大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '庆应义塾大学', en: 'Keio University', native: '慶應義塾大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '上智大学', en: 'Sophia University', native: '上智大学', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    // 英国（nativeLang: en）
+    { zh: '牛津大学', en: 'University of Oxford', native: 'University of Oxford', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '剑桥大学', en: 'University of Cambridge', native: 'University of Cambridge', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '帝国理工学院', en: 'Imperial College London', native: 'Imperial College London', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '伦敦大学学院', en: 'University College London', native: 'University College London', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '爱丁堡大学', en: 'University of Edinburgh', native: 'University of Edinburgh', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    // 德国（nativeLang: de）
+    { zh: '慕尼黑工业大学', en: 'Technical University of Munich', native: 'Technische Universität München', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '海德堡大学', en: 'Heidelberg University', native: 'Ruprecht-Karls-Universität Heidelberg', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '柏林工业大学', en: 'Berlin Institute of Technology', native: 'Technische Universität Berlin', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    // 法国（nativeLang: fr）
+    { zh: '巴黎综合理工学院', en: 'École Polytechnique', native: 'École Polytechnique', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '索邦大学', en: 'Sorbonne University', native: 'Sorbonne Université', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    // 意大利（nativeLang: it）
+    { zh: '博洛尼亚大学', en: 'University of Bologna', native: 'Università di Bologna', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '罗马大学', en: 'University of Rome', native: 'Università di Roma', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    // 西班牙（nativeLang: es）
+    { zh: '马德里康普顿斯大学', en: 'Complutense University of Madrid', native: 'Universidad Complutense de Madrid', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    // 加拿大（nativeLang: en）
+    { zh: '多伦多大学', en: 'University of Toronto', native: 'University of Toronto', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    // 美国（nativeLang: en）
+    { zh: '哈佛大学', en: 'Harvard University', native: 'Harvard University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '斯坦福大学', en: 'Stanford University', native: 'Stanford University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '麻省理工学院', en: 'Massachusetts Institute of Technology', native: 'Massachusetts Institute of Technology', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '耶鲁大学', en: 'Yale University', native: 'Yale University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '普林斯顿大学', en: 'Princeton University', native: 'Princeton University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '哥伦比亚大学', en: 'Columbia University', native: 'Columbia University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '芝加哥大学', en: 'University of Chicago', native: 'University of Chicago', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '加州理工学院', en: 'California Institute of Technology', native: 'California Institute of Technology', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '宾夕法尼亚大学', en: 'University of Pennsylvania', native: 'University of Pennsylvania', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '杜克大学', en: 'Duke University', native: 'Duke University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '西北大学', en: 'Northwestern University', native: 'Northwestern University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '约翰斯·霍普金斯大学', en: 'Johns Hopkins University', native: 'Johns Hopkins University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '加州大学伯克利分校', en: 'University of California, Berkeley', native: 'University of California, Berkeley', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '加州大学洛杉矶分校', en: 'University of California, Los Angeles', native: 'University of California, Los Angeles', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '康奈尔大学', en: 'Cornell University', native: 'Cornell University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '布朗大学', en: 'Brown University', native: 'Brown University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '纽约大学', en: 'New York University', native: 'New York University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '卡内基梅隆大学', en: 'Carnegie Mellon University', native: 'Carnegie Mellon University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '南加州大学', en: 'University of Southern California', native: 'University of Southern California', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '弗吉尼亚大学', en: 'University of Virginia', native: 'University of Virginia', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '德克萨斯大学奥斯汀分校', en: 'University of Texas at Austin', native: 'University of Texas at Austin', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '密歇根大学安娜堡分校', en: 'University of Michigan, Ann Arbor', native: 'University of Michigan, Ann Arbor', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '北卡罗来纳大学教堂山分校', en: 'University of North Carolina at Chapel Hill', native: 'University of North Carolina at Chapel Hill', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '佐治亚理工学院', en: 'Georgia Institute of Technology', native: 'Georgia Institute of Technology', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '威斯康星大学麦迪逊分校', en: 'University of Wisconsin-Madison', native: 'University of Wisconsin-Madison', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '伊利诺伊大学香槟分校', en: 'University of Illinois at Urbana-Champaign', native: 'University of Illinois at Urbana-Champaign', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '华盛顿大学', en: 'University of Washington', native: 'University of Washington', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '波士顿大学', en: 'Boston University', native: 'Boston University', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    // 澳大利亚（nativeLang: en）
+    { zh: '悉尼大学', en: 'University of Sydney', native: 'University of Sydney', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '墨尔本大学', en: 'University of Melbourne', native: 'University of Melbourne', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    // 新加坡（nativeLang: en）
+    { zh: '新加坡国立大学', en: 'National University of Singapore', native: 'National University of Singapore', nativeLang: 'en', countryZh: '新加坡', countryEn: 'Singapore' }
+  ];
+
+  /* 学段学校统一池：每条学校显式给出各语言名称与所属国家，
+   * 替代原“从单一基础数组选校、zh 槽回填原文名”的错位方案。 */
+  var kindergartensUnified = [
+    { zh: '阳光幼儿园', en: 'Sunshine Kindergarten', native: '阳光幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '蓝天幼儿园', en: 'Blue Sky Kindergarten', native: '蓝天幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '红黄蓝幼儿园', en: 'Red-Yellow-Blue Kindergarten', native: '红黄蓝幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '快乐宝贝幼儿园', en: 'Happy Babies Kindergarten', native: '快乐宝贝幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '金色摇篮幼儿园', en: 'Golden Cradle Kindergarten', native: '金色摇篮幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '小星星幼儿园', en: 'Little Star Kindergarten', native: '小星星幼儿园', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '阳光幼儿园', en: 'Sunshine Kindergarten', native: 'Sunshine Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '蓝天幼儿园', en: 'Blue Sky Kindergarten', native: 'Blue Sky Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '快乐幼儿园', en: 'Happy Kids Kindergarten', native: 'Happy Kids Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '小天使幼儿园', en: 'Little Angels Kindergarten', native: 'Little Angels Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '亮星幼儿园', en: 'Bright Star Kindergarten', native: 'Bright Star Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '彩虹幼儿园', en: 'Rainbow Kindergarten', native: 'Rainbow Kindergarten', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '阳光幼儿园', en: 'Sunshine Kindergarten', native: '陽光幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '樱花幼儿园', en: 'Sakura Kindergarten', native: 'さくら幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '彩虹幼儿园', en: 'Rainbow Kindergarten', native: '虹の幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '快乐幼儿园', en: 'Happy Kindergarten', native: 'ハッピー幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '星星幼儿园', en: 'Star Kindergarten', native: '星の幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '绿色幼儿园', en: 'Green Kindergarten', native: '緑の幼稚園', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '阳光幼儿园', en: 'Sunshine Kindergarten', native: 'Sunshine Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '蓝天幼儿园', en: 'Blue Sky Kindergarten', native: 'Blue Sky Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '快乐幼儿园', en: 'Happy Kindergarten', native: 'Happy Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '小星星幼儿园', en: 'Little Star Kindergarten', native: 'Little Star Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '彩虹幼儿园', en: 'Rainbow Kindergarten', native: 'Rainbow Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '绿野幼儿园', en: 'Greenfield Kindergarten', native: 'Greenfield Kindergarten', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '阳光幼儿园', en: 'Sonnenschein Kindergarten', native: 'Sonnenschein Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '蓝天幼儿园', en: 'Blauer Himmel Kindergarten', native: 'Blauer Himmel Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '快乐幼儿园', en: 'Fröhlicher Kindergarten', native: 'Fröhlicher Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '小星星幼儿园', en: 'Sternchen Kindergarten', native: 'Sternchen Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '彩虹幼儿园', en: 'Regenbogen Kindergarten', native: 'Regenbogen Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '绿野幼儿园', en: 'Grünfeld Kindergarten', native: 'Grünfeld Kindergarten', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '太阳幼儿园', en: 'École Maternelle Soleil', native: 'École Maternelle Soleil', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '蓝天幼儿园', en: 'École Maternelle Ciel Bleu', native: 'École Maternelle Ciel Bleu', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '快乐幼儿园', en: 'École Maternelle Joyeuse', native: 'École Maternelle Joyeuse', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '小星星幼儿园', en: 'École Maternelle Petite Étoile', native: 'École Maternelle Petite Étoile', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '彩虹幼儿园', en: 'École Maternelle Arc-en-ciel', native: 'École Maternelle Arc-en-ciel', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '绿坪幼儿园', en: 'École Maternelle Vert Pré', native: 'École Maternelle Vert Pré', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '太阳幼儿园', en: 'Scuola Materna Sole', native: 'Scuola Materna Sole', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '蓝天幼儿园', en: 'Scuola Materna Cielo Blu', native: 'Scuola Materna Cielo Blu', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '快乐幼儿园', en: 'Scuola Materna Felice', native: 'Scuola Materna Felice', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '小星星幼儿园', en: 'Scuola Materna Stellina', native: 'Scuola Materna Stellina', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '彩虹幼儿园', en: 'Scuola Materna Arcobaleno', native: 'Scuola Materna Arcobaleno', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '绿坪幼儿园', en: 'Scuola Materna Prato Verde', native: 'Scuola Materna Prato Verde', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '太阳幼儿园', en: 'Guardería Sol', native: 'Guardería Sol', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '蓝天幼儿园', en: 'Guardería Cielo Azul', native: 'Guardería Cielo Azul', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '快乐幼儿园', en: 'Guardería Feliz', native: 'Guardería Feliz', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '小星星幼儿园', en: 'Guardería Estrellita', native: 'Guardería Estrellita', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '彩虹幼儿园', en: 'Guardería Arcoíris', native: 'Guardería Arcoíris', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '绿坪幼儿园', en: 'Guardería Prado Verde', native: 'Guardería Prado Verde', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '阳光幼儿园', en: 'Sunshine Kindergarten', native: 'Sunshine Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '蓝天幼儿园', en: 'Blue Sky Kindergarten', native: 'Blue Sky Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '快乐幼儿园', en: 'Happy Kindergarten', native: 'Happy Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '小星星幼儿园', en: 'Little Star Kindergarten', native: 'Little Star Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '彩虹幼儿园', en: 'Rainbow Kindergarten', native: 'Rainbow Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '绿野幼儿园', en: 'Greenfield Kindergarten', native: 'Greenfield Kindergarten', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '第一幼儿园', en: 'First Kindergarten', native: 'First Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '绿园幼儿园', en: 'Green Garden Kindergarten', native: 'Green Garden Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '旭日幼儿园', en: 'Bright Horizons Kindergarten', native: 'Bright Horizons Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '小学者幼儿园', en: 'Little Learners Kindergarten', native: 'Little Learners Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '阳光儿童幼儿园', en: 'Sunshine Kids Kindergarten', native: 'Sunshine Kids Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '彩虹桥幼儿园', en: 'Rainbow Bridge Kindergarten', native: 'Rainbow Bridge Kindergarten', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' }
+  ];
+
+  var primarySchoolsUnified = [
+    { zh: '实验小学', en: 'Experimental Primary School', native: '实验小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '第一小学', en: 'No. 1 Primary School', native: '第一小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '育才小学', en: 'Yucai Primary School', native: '育才小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '阳光小学', en: 'Sunshine Primary School', native: '阳光小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '和平小学', en: 'Peace Primary School', native: '和平小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '师范附属小学', en: 'Normal Affiliated Primary School', native: '师范附属小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '双语实验小学', en: 'Bilingual Experimental Primary School', native: '双语实验小学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中心小学', en: 'Central Primary School', native: 'Central Primary School', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '林肯小学', en: 'Lincoln Elementary', native: 'Lincoln Elementary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '枫叶小学', en: 'Maple Primary', native: 'Maple Primary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '河畔小学', en: 'Riverside Primary', native: 'Riverside Primary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '橡树小学', en: 'Oak Elementary', native: 'Oak Elementary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '绿林小学', en: 'Greenwood Primary', native: 'Greenwood Primary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '华盛顿小学', en: 'Washington Primary', native: 'Washington Primary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '杰斐逊小学', en: 'Jefferson Primary', native: 'Jefferson Primary', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '中央小学校', en: 'Central Primary School', native: '中央小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '第一小学校', en: 'First Primary School', native: '第一小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '樱花小学校', en: 'Sakura Primary School', native: 'さくら小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '阳光小学校', en: 'Sunshine Primary School', native: '陽光小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '绿色小学校', en: 'Green Primary School', native: '緑の小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '希望小学校', en: 'Hope Primary School', native: '希望小学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '中心小学', en: 'Central Primary School', native: 'Central Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '林肯小学', en: 'Lincoln Primary School', native: 'Lincoln Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '枫叶小学', en: 'Maple Primary School', native: 'Maple Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '河畔小学', en: 'Riverside Primary School', native: 'Riverside Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '橡树小学', en: 'Oak Primary School', native: 'Oak Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '绿林小学', en: 'Greenwood Primary School', native: 'Greenwood Primary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '中央小学', en: 'Grundschule Mitte', native: 'Grundschule Mitte', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '第一小学', en: 'Grundschule Nr. 1', native: 'Grundschule Nr. 1', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '枫树小学', en: 'Ahorn-Grundschule', native: 'Ahorn-Grundschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '河边小学', en: 'Fluss-Grundschule', native: 'Fluss-Grundschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '橡树小学', en: 'Eichen-Grundschule', native: 'Eichen-Grundschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '绿林小学', en: 'Grünwald-Grundschule', native: 'Grünwald-Grundschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '中央小学', en: 'École Primaire Centrale', native: 'École Primaire Centrale', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '第一小学', en: 'École Primaire n°1', native: 'École Primaire n°1', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '枫树小学', en: 'École Primaire Érable', native: 'École Primaire Érable', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '河岸小学', en: 'École Primaire Rivage', native: 'École Primaire Rivage', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '橡树小学', en: 'École Primaire Chêne', native: 'École Primaire Chêne', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '绿林小学', en: 'École Primaire Bois-Vert', native: 'École Primaire Bois-Vert', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '中央小学', en: 'Scuola Primaria Centrale', native: 'Scuola Primaria Centrale', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '第一小学', en: 'Scuola Primaria n.1', native: 'Scuola Primaria n.1', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '枫树小学', en: 'Scuola Primaria Acero', native: 'Scuola Primaria Acero', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '河畔小学', en: 'Scuola Primaria Riva', native: 'Scuola Primaria Riva', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '橡树小学', en: 'Scuola Primaria Quercia', native: 'Scuola Primaria Quercia', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '绿林小学', en: 'Scuola Primaria Boscoverde', native: 'Scuola Primaria Boscoverde', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '中央小学', en: 'Colegio Primario Central', native: 'Colegio Primario Central', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '第一小学', en: 'Colegio Primario n.1', native: 'Colegio Primario n.1', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '枫树小学', en: 'Colegio Primario Arce', native: 'Colegio Primario Arce', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '河畔小学', en: 'Colegio Primario Ribera', native: 'Colegio Primario Ribera', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '橡树小学', en: 'Colegio Primario Roble', native: 'Colegio Primario Roble', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '绿林小学', en: 'Colegio Primario Bosque Verde', native: 'Colegio Primario Bosque Verde', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '中心小学', en: 'Central Primary School', native: 'Central Primary School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '林肯小学', en: 'Lincoln Elementary', native: 'Lincoln Elementary', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '枫叶小学', en: 'Maple Primary School', native: 'Maple Primary School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '河畔小学', en: 'Riverside Primary School', native: 'Riverside Primary School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '橡树小学', en: 'Oak Primary School', native: 'Oak Primary School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '绿林小学', en: 'Greenwood Primary School', native: 'Greenwood Primary School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '第一小学', en: 'First Primary School', native: 'First Primary School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '日出小学', en: 'Sunrise Primary School', native: 'Sunrise Primary School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '港湾小学', en: 'Harbor Primary School', native: 'Harbor Primary School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '丛林小学', en: 'Bushland Primary School', native: 'Bushland Primary School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '海岸小学', en: 'Coastal Primary School', native: 'Coastal Primary School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' }
+  ];
+
+  var middleSchoolsUnified = [
+    { zh: '实验中学', en: 'Experimental Middle School', native: '实验中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '第二中学', en: 'No. 2 Middle School', native: '第二中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '文汇中学', en: 'Wenhui Middle School', native: '文汇中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '青春中学', en: 'Qingchun Middle School', native: '青春中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '外国语初级中学', en: 'Foreign Language Middle School', native: '外国语初级中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '育才初级中学', en: 'Yucai Middle School', native: '育才初级中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中央中学', en: 'Central Middle School', native: 'Central Middle School', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '林肯初中', en: 'Lincoln Junior High', native: 'Lincoln Junior High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '枫叶中学', en: 'Maple Middle', native: 'Maple Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '河畔中学', en: 'Riverside Middle', native: 'Riverside Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '橡树中学', en: 'Oak Middle', native: 'Oak Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '华盛顿中学', en: 'Washington Middle', native: 'Washington Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '杰斐逊中学', en: 'Jefferson Middle', native: 'Jefferson Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '富兰克林中学', en: 'Franklin Middle', native: 'Franklin Middle', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '中央中学校', en: 'Central Middle School', native: '中央中学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '第一中学校', en: 'First Middle School', native: '第一中学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '樱花中学校', en: 'Sakura Middle School', native: 'さくら中学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '阳光中学校', en: 'Sunshine Middle School', native: '陽光中学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '绿色中学校', en: 'Green Middle School', native: '緑の中学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '中央中学', en: 'Central Secondary School', native: 'Central Secondary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '林肯中学', en: 'Lincoln Secondary School', native: 'Lincoln Secondary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '枫叶中学', en: 'Maple Secondary School', native: 'Maple Secondary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '河畔中学', en: 'Riverside Secondary School', native: 'Riverside Secondary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '橡树中学', en: 'Oak Secondary School', native: 'Oak Secondary School', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '中央中学', en: 'Mittelschule Mitte', native: 'Mittelschule Mitte', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '第一中学', en: 'Mittelschule Nr. 1', native: 'Mittelschule Nr. 1', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '枫树中学', en: 'Ahorn-Mittelschule', native: 'Ahorn-Mittelschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '河边中学', en: 'Fluss-Mittelschule', native: 'Fluss-Mittelschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '橡树中学', en: 'Eichen-Mittelschule', native: 'Eichen-Mittelschule', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '中央中学', en: 'Collège Central', native: 'Collège Central', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '第一中学', en: 'Collège n°1', native: 'Collège n°1', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '枫树中学', en: 'Collège Érable', native: 'Collège Érable', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '河岸中学', en: 'Collège Rivage', native: 'Collège Rivage', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '橡树中学', en: 'Collège Chêne', native: 'Collège Chêne', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '中央中学', en: 'Scuola Media Centrale', native: 'Scuola Media Centrale', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '第一中学', en: 'Scuola Media n.1', native: 'Scuola Media n.1', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '枫树中学', en: 'Scuola Media Acero', native: 'Scuola Media Acero', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '河畔中学', en: 'Scuola Media Riva', native: 'Scuola Media Riva', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '橡树中学', en: 'Scuola Media Quercia', native: 'Scuola Media Quercia', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '中央中学', en: 'Instituto Central', native: 'Instituto Central', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '第一中学', en: 'Instituto n.1', native: 'Instituto n.1', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '枫树中学', en: 'Instituto Arce', native: 'Instituto Arce', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '河畔中学', en: 'Instituto Ribera', native: 'Instituto Ribera', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '橡树中学', en: 'Instituto Roble', native: 'Instituto Roble', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '中央中学', en: 'Central Middle School', native: 'Central Middle School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '林肯中学', en: 'Lincoln Middle School', native: 'Lincoln Middle School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '枫叶中学', en: 'Maple Middle School', native: 'Maple Middle School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '河畔中学', en: 'Riverside Middle School', native: 'Riverside Middle School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '橡树中学', en: 'Oak Middle School', native: 'Oak Middle School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '第一中学', en: 'First Middle School', native: 'First Middle School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '日出中学', en: 'Sunrise Middle School', native: 'Sunrise Middle School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '港湾中学', en: 'Harbor Middle School', native: 'Harbor Middle School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' }
+  ];
+
+  var highSchoolsUnified = [
+    { zh: '第一中学', en: 'No. 1 High School', native: '第一中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '附属中学', en: 'Affiliated High School', native: '附属中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '育才中学', en: 'Yucai High School', native: '育才中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '外国语高级中学', en: 'Foreign Language High School', native: '外国语高级中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '实验高中', en: 'Experimental High School', native: '实验高中', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '育才高级中学', en: 'Yucai Senior High School', native: '育才高级中学', nativeLang: 'zh', countryZh: '中国', countryEn: 'China' },
+    { zh: '中央高中', en: 'Central High School', native: 'Central High School', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '林肯高中', en: 'Lincoln High', native: 'Lincoln High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '枫叶高中', en: 'Maple High', native: 'Maple High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '河畔高中', en: 'Riverside High', native: 'Riverside High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '橡树高中', en: 'Oak High', native: 'Oak High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '华盛顿高中', en: 'Washington High', native: 'Washington High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '杰斐逊高中', en: 'Jefferson High', native: 'Jefferson High', nativeLang: 'en', countryZh: '美国', countryEn: 'United States' },
+    { zh: '中央高等学校', en: 'Central High School', native: '中央高等学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '第一高等学校', en: 'First High School', native: '第一高等学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '樱花高等学校', en: 'Sakura High School', native: 'さくら高等学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '阳光高等学校', en: 'Sunshine High School', native: '陽光高等学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '绿色高等学校', en: 'Green High School', native: '緑の高等学校', nativeLang: 'ja', countryZh: '日本', countryEn: 'Japan' },
+    { zh: '中央第六学级', en: 'Central Sixth Form', native: 'Central Sixth Form', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '林肯第六学级', en: 'Lincoln Sixth Form', native: 'Lincoln Sixth Form', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '枫叶第六学级', en: 'Maple Sixth Form', native: 'Maple Sixth Form', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '河畔第六学级', en: 'Riverside Sixth Form', native: 'Riverside Sixth Form', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '橡树第六学级', en: 'Oak Sixth Form', native: 'Oak Sixth Form', nativeLang: 'en', countryZh: '英国', countryEn: 'United Kingdom' },
+    { zh: '中央文理中学', en: 'Gymnasium Mitte', native: 'Gymnasium Mitte', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '第一文理中学', en: 'Gymnasium Nr. 1', native: 'Gymnasium Nr. 1', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '枫树文理中学', en: 'Ahorn-Gymnasium', native: 'Ahorn-Gymnasium', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '河边文理中学', en: 'Fluss-Gymnasium', native: 'Fluss-Gymnasium', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '橡树文理中学', en: 'Eichen-Gymnasium', native: 'Eichen-Gymnasium', nativeLang: 'de', countryZh: '德国', countryEn: 'Germany' },
+    { zh: '中央高中', en: 'Lycée Central', native: 'Lycée Central', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '第一高中', en: 'Lycée n°1', native: 'Lycée n°1', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '枫树高中', en: 'Lycée Érable', native: 'Lycée Érable', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '河岸高中', en: 'Lycée Rivage', native: 'Lycée Rivage', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '橡树高中', en: 'Lycée Chêne', native: 'Lycée Chêne', nativeLang: 'fr', countryZh: '法国', countryEn: 'France' },
+    { zh: '中央高中', en: 'Liceo Centrale', native: 'Liceo Centrale', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '第一高中', en: 'Liceo n.1', native: 'Liceo n.1', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '枫树高中', en: 'Liceo Acero', native: 'Liceo Acero', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '河畔高中', en: 'Liceo Riva', native: 'Liceo Riva', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '橡树高中', en: 'Liceo Quercia', native: 'Liceo Quercia', nativeLang: 'it', countryZh: '意大利', countryEn: 'Italy' },
+    { zh: '中央高中', en: 'Instituto Central', native: 'Instituto Central', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '第一高中', en: 'Instituto n.1', native: 'Instituto n.1', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '枫树高中', en: 'Instituto Arce', native: 'Instituto Arce', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '河畔高中', en: 'Instituto Ribera', native: 'Instituto Ribera', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '橡树高中', en: 'Instituto Roble', native: 'Instituto Roble', nativeLang: 'es', countryZh: '西班牙', countryEn: 'Spain' },
+    { zh: '中央高中', en: 'Central High School', native: 'Central High School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '林肯高中', en: 'Lincoln High School', native: 'Lincoln High School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '枫叶高中', en: 'Maple High School', native: 'Maple High School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '河畔高中', en: 'Riverside High School', native: 'Riverside High School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '橡树高中', en: 'Oak High School', native: 'Oak High School', nativeLang: 'en', countryZh: '加拿大', countryEn: 'Canada' },
+    { zh: '第一高中', en: 'First High School', native: 'First High School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '日出高中', en: 'Sunrise High School', native: 'Sunrise High School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '港湾高中', en: 'Harbor High School', native: 'Harbor High School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' },
+    { zh: '海岸高中', en: 'Coastal High School', native: 'Coastal High School', nativeLang: 'en', countryZh: '澳大利亚', countryEn: 'Australia' }
+  ];
+
+  /* 挂载统一池到 FakeID.profile，pickSchoolByCountry（util.js）优先读取此结构 */
+  FakeID.profile = { pools: PROFILE, timezones: TIMEZONES,
+    schoolsUnified: schoolsUnified, kindergartensUnified: kindergartensUnified,
+    primarySchoolsUnified: primarySchoolsUnified, middleSchoolsUnified: middleSchoolsUnified,
+    highSchoolsUnified: highSchoolsUnified };
+
+  /* 由统一池重建旧版并行数组（schools 等五类）：
+   * 旧 zh/en 学校数组长度不一致（69 vs 76）且下标互不对齐，是历史遗留结构。
+   * 在此以统一池为唯一事实源重建两池，使下标严格对齐、长度一致，
+   * 消除 validateParallelArrays 警告，也让仍读取旧结构的外部代码不再错位。 */
+  (function rebuildLegacyPools() {
+    var pairs = [
+      ['schools', 'schoolsUnified'],
+      ['kindergartens', 'kindergartensUnified'],
+      ['primarySchools', 'primarySchoolsUnified'],
+      ['middleSchools', 'middleSchoolsUnified'],
+      ['highSchools', 'highSchoolsUnified']
+    ];
+    for (var i = 0; i < pairs.length; i++) {
+      var legacyKey = pairs[i][0], unifiedKey = pairs[i][1];
+      var unified = FakeID.profile[unifiedKey];
+      var zhArr = [], enArr = [];
+      for (var j = 0; j < unified.length; j++) {
+        var e = unified[j];
+        // 旧结构三元组：[localName, countryName, nativeName]
+        zhArr.push([e.zh, e.countryZh, e.native]);
+        enArr.push([e.en, e.countryEn, e.native]);
+      }
+      PROFILE.zh[legacyKey] = zhArr;
+      PROFILE.en[legacyKey] = enArr;
+    }
+  })();
+
   // 并行数组完整性自检（需 util.js 已加载，index.html defer 顺序保证）
   if (FakeID.util && FakeID.util.validateParallelArrays) {
     FakeID.util.validateParallelArrays(PROFILE.zh, PROFILE.en);

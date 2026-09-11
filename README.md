@@ -53,7 +53,7 @@ A fully **offline**, **zero-dependency** web application that generates realisti
 - **Bilingual UI (中文 / English)** with automatic detection of the visitor's system language and persistence via `localStorage`.
 - **Light / Dark / System theme** driven by a design-token CSS variable system with smooth transitions and no flash-of-wrong-theme (FOUC) on load.
 - **Age-aware generation** — birth dates, body metrics (height/weight), occupations, employers, and credit cards are all consistent with the generated age.
-- **Valid-structure identifiers** — Chinese ID cards use the real GB 11643-1999 (mod 11-2) checksum; card numbers pass the **Luhn** algorithm; SSN/NINO/My Number/Steuer-ID/NIR/Codice Fiscale/DNI follow their respective format conventions (all demo/illustrative).
+- **Valid-structure identifiers** — Chinese ID cards use the real GB 11643-1999 (mod 11-2) checksum; card numbers pass the **Luhn** algorithm; **My Number** (official weighted checksum incl. the `≤1→0` rule), **Steuer-ID** (ISO 7064 MOD 11,10), **NIR** (mod-97 key with the `2A/2B`→`20/19` Corsica rule), **Codice Fiscale** (official month letters + odd/even checksum char), **NINO** (reserved prefixes excluded), and **DNI/NIE** (mod-23 letter) all follow their public checksum conventions (all demo/illustrative).
 - **Flexible controls** — gender, age mode (random / exact / range), email domain (random per country / popular webmail / custom), card network, and batch count (1/3/5/10).
 - **Copy All** (Clipboard API with a manual-copy prompt on unsupported browsers) and **Export CSV** (UTF-8 BOM, RFC-style quoting/escaping) for quick reuse in tests and demos.
 - **Extended profiles** — education, major, school (with country), company size, income level, skills, interests, personality traits, pet, favorite food, travel style, physical appearance (hair/eye/skin), blood type, body type, **security question & answer**, **online signature**, timezone, and website.
@@ -237,13 +237,13 @@ The category **code** (`child` / `student` / `retired`) is stored and localized 
 
 - **China `idCard`** — `util.makeChinaID(region6, date)` formats `regionCode(6) + birthDate(8) + sequence(3) + checksum(1)` and computes the check digit with `util.chinaIDChecksum` using the GB 11643-1999 (mod 11-2) weights `[7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2]` and remainder map `['1','0','X','9','8','7','6','5','4','3','2']`.
 - **US `ssn`** — `AAA-BB-CCCC`; area avoids `000`, `666`, and `900–999`.
-- **UK `nino`** — two letters + 6 digits + one suffix letter (`A–D`).
-- **Japan `myNumber`** — 12 digits.
-- **Germany `taxId` (Steuer-ID)** — 11 digits, displayed in `XX XXX XXX XXX` groups.
-- **France `nir`** — encodes gender and birth date per the French NIR convention.
-- **Italy `cf`** — Codice Fiscale style.
-- **Spain `dni`** — DNI style.
-- **Canada `sin`** — `XXX-XXX-XXX`; postal code follows `A1B 2C3`.
+- **UK `nino`** — two letters + 6 digits + one suffix letter (`A–D`); the prefix alphabet excludes unused letters (`D F I O Q U V`) and reserved administrative prefixes (`BG GB KN NK NT TN ZZ`).
+- **Japan `myNumber`** — 12 digits with the official My Number check digit: the first 11 digits are weighted `6,5,4,3,2,7,6,5,4,3,2` from the left; when the weighted sum mod 11 is `≤ 1` the check digit is `0`, otherwise `(11 − sum mod 11) mod 10`. Postal codes (`123-4567`) never start with `0`.
+- **Germany `taxId` (Steuer-ID)** — 11 digits, displayed in `XX XXX XXX XXX` groups. The check digit follows the official **ISO 7064 MOD 11,10** recursive scheme (`p=10; s=(p+d)%10 (0→10); p=(s*2)%11; check=(11−p)%10`), and the first digit is never `0`.
+- **France `nir`** — encodes gender and birth date per the French NIR convention, with the two-digit key `97 − (body mod 97)`. Department `20` is never emitted (unassigned since 1976); Corsica uses `2A`/`2B`, which are substituted with `20`/`19` respectively when computing the key, per INSEE rules.
+- **Italy `cf`** — Codice Fiscale with the official structure: surname/given consonants, birth-year, month letter (`A B C D E H L M P R S T`), day (+40 for females), cadastral code, and the official odd/even weighted checksum character.
+- **Spain `dni`** — DNI style, with the official mod-23 letter (`TRWAGMYFPDXBNJZSQVHLCKE`); ~15% are NIE (`X/Y/Z` + 7 digits), where the prefix letter counts as `0/1/2` in the leading position.
+- **Canada `sin`** — `XXX-XXX-XXX` with a **Luhn** check digit; postal code follows `A1B 2C3`.
 
 ---
 

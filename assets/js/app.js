@@ -211,9 +211,14 @@
   }
 
   // 国家变化 -> 重新填充“地区/省”
+  // 修复：语言切换触发 applyLanguage -> onCountryChange 重建下拉时，
+  // 用户已选的地区/城市/区县会被静默清空。重建前保存当前值，重建后尽力恢复。
   function onCountryChange() {
     var c = FakeID.countries[countrySel.value];
     syncEmailOptions(c);
+    var keepRegion = regionSel.value;
+    var keepCity = citySel.value;
+    var keepDistrict = districtSel.value;
     regionSel.innerHTML = '';
     citySel.innerHTML = '';
     if (c && c.regions && c.regions.length) {
@@ -226,14 +231,23 @@
         o.value = r.name; o.textContent = r.abbr ? (r.name + ' (' + r.abbr + ')') : r.name;
         regionSel.appendChild(o);
       });
+      // 恢复此前选中的地区（若仍存在于新列表）
+      if (keepRegion) {
+        var hasRegion = false;
+        for (var ri = 0; ri < regionSel.options.length; ri++) {
+          if (regionSel.options[ri].value === keepRegion) { hasRegion = true; break; }
+        }
+        if (hasRegion) regionSel.value = keepRegion;
+      }
     } else {
       regionWrap.classList.add('hidden');
     }
-    onRegionChange();
+    onRegionChange(keepCity, keepDistrict);
   }
 
   // 地区变化 -> 重新填充“城市”
-  function onRegionChange() {
+  // keepCity/keepDistrict：可选参数，重建后用于恢复用户先前的选择（语言切换场景）
+  function onRegionChange(keepCity, keepDistrict) {
     var c = FakeID.countries[countrySel.value];
     citySel.innerHTML = '';
     var region = null;
@@ -253,14 +267,23 @@
         o.value = name; o.textContent = name;
         citySel.appendChild(o);
       });
+      // 恢复此前选中的城市（若仍存在于新列表）
+      if (keepCity) {
+        var hasCity = false;
+        for (var ci2 = 0; ci2 < citySel.options.length; ci2++) {
+          if (citySel.options[ci2].value === keepCity) { hasCity = true; break; }
+        }
+        if (hasCity) citySel.value = keepCity;
+      }
     } else {
       cityWrap.classList.add('hidden');
     }
-    onCityChange();   // 城市变化后联动刷新“区/县”
+    onCityChange(keepDistrict);   // 城市变化后联动刷新“区/县”
   }
 
   // 城市变化 -> 重新填充“区/县”（仅当地级市含 districts 时显示该下拉）
-  function onCityChange() {
+  // keepDistrict：可选参数，重建后用于恢复用户先前的选择（语言切换场景）
+  function onCityChange(keepDistrict) {
     var c = FakeID.countries[countrySel.value];
     districtSel.innerHTML = '';
     var region = null, city = null;
@@ -287,6 +310,14 @@
         o.value = d; o.textContent = d;
         districtSel.appendChild(o);
       });
+      // 恢复此前选中的区/县（若仍存在于新列表）
+      if (keepDistrict) {
+        var hasDistrict = false;
+        for (var di = 0; di < districtSel.options.length; di++) {
+          if (districtSel.options[di].value === keepDistrict) { hasDistrict = true; break; }
+        }
+        if (hasDistrict) districtSel.value = keepDistrict;
+      }
     } else {
       districtWrap.classList.add('hidden');
     }
@@ -343,6 +374,11 @@
       if (typeof console !== 'undefined' && console.error) console.error('[FakeID] 生成失败:', err);
       genError = err;
       if (!batches.length) {
+        // 修复：全部失败时必须清除上一轮的过期结果，否则界面继续显示旧数据，
+        // 用户误以为刚点的"生成"已成功（staleness 脏数据问题）
+        lastBatches = [];
+        lastCountryCode = code;
+        renderResults();
         flash(i18n.t('flash.generateFail') || ('生成失败: ' + (err && err.message ? err.message : err)));
         return;
       }
@@ -352,8 +388,10 @@
     renderResults();
     if (genError) {
       // 部分成功：显示错误提示而非覆盖为"生成成功"
-      flash((i18n.t('flash.partialFail') || ('仅生成 ' + batches.length + ' 条，部分失败: ' +
-        (genError && genError.message ? genError.message : genError))));
+      // 修复：partialFail 文案含 {n} 占位符（成功文案同款），必须执行 replace
+      var pfMsg = i18n.t('flash.partialFail') || ('仅生成 ' + batches.length + ' 条，部分失败: ' +
+        (genError && genError.message ? genError.message : genError));
+      flash(String(pfMsg).replace('{n}', batches.length));
     } else {
       flash(i18n.t('flash.generated').replace('{n}', batches.length));
     }
